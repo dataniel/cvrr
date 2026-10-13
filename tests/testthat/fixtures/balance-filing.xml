@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"
+            xmlns:link="http://www.xbrl.org/2003/linkbase"
+            xmlns:xlink="http://www.w3.org/1999/xlink"
+            xmlns:xbrldi="http://xbrl.org/2006/xbrldi"
+            xmlns:iso4217="http://www.xbrl.org/2003/iso4217"
+            xmlns:g="http://example.invalid/fsa"
+            xmlns:d="http://example.invalid/cmn">
+  <!-- the filer binds fsa to "g" and cmn to "d", as real filings do -->
+  <link:schemaRef xlink:type="simple"
+    xlink:href="http://example.invalid/taxonomy/20240101/entryBalanceSheet20240101.xsd"/>
+
+  <xbrli:context id="c_solo">
+    <xbrli:period><xbrli:instant>2024-12-31</xbrli:instant></xbrli:period>
+  </xbrli:context>
+  <xbrli:context id="c_cons">
+    <xbrli:entity><xbrli:segment>
+      <xbrldi:explicitMember dimension="d:ConsolidatedSoloDimension">d:ConsolidatedMember</xbrldi:explicitMember>
+    </xbrli:segment></xbrli:entity>
+    <xbrli:period><xbrli:instant>2024-12-31</xbrli:instant></xbrli:period>
+  </xbrli:context>
+
+  <xbrli:unit id="DKK"><xbrli:measure>iso4217:DKK</xbrli:measure></xbrli:unit>
+
+  <!-- parent: 300 = 100 noncurrent + 200 current; current = 120 + 80 -->
+  <g:Assets                 contextRef="c_solo" unitRef="DKK">300</g:Assets>
+  <g:NoncurrentAssets       contextRef="c_solo" unitRef="DKK">100</g:NoncurrentAssets>
+  <g:CurrentAssets          contextRef="c_solo" unitRef="DKK">200</g:CurrentAssets>
+  <g:Inventories            contextRef="c_solo" unitRef="DKK">120</g:Inventories>
+  <g:CashAndCashEquivalents contextRef="c_solo" unitRef="DKK">80</g:CashAndCashEquivalents>
+
+  <!-- Inventories split by class: 70 + 50 = 120, agreeing with the line -->
+  <xbrli:context id="c_inv_a">
+    <xbrli:entity><xbrli:segment>
+      <xbrldi:explicitMember dimension="d:ClassesOfInventoriesDimension">d:RawMaterialsMember</xbrldi:explicitMember>
+    </xbrli:segment></xbrli:entity>
+    <xbrli:period><xbrli:instant>2024-12-31</xbrli:instant></xbrli:period>
+  </xbrli:context>
+  <xbrli:context id="c_inv_b">
+    <xbrli:entity><xbrli:segment>
+      <xbrldi:explicitMember dimension="d:ClassesOfInventoriesDimension">d:FinishedGoodsMember</xbrldi:explicitMember>
+    </xbrli:segment></xbrli:entity>
+    <xbrli:period><xbrli:instant>2024-12-31</xbrli:instant></xbrli:period>
+  </xbrli:context>
+  <g:Inventories contextRef="c_inv_a" unitRef="DKK">70</g:Inventories>
+  <g:Inventories contextRef="c_inv_b" unitRef="DKK">50</g:Inventories>
+
+  <!-- group: current assets 250 but only 120 specified -->
+  <g:Assets                 contextRef="c_cons" unitRef="DKK">350</g:Assets>
+  <g:NoncurrentAssets       contextRef="c_cons" unitRef="DKK">100</g:NoncurrentAssets>
+  <g:CurrentAssets          contextRef="c_cons" unitRef="DKK">250</g:CurrentAssets>
+  <g:Inventories            contextRef="c_cons" unitRef="DKK">120</g:Inventories>
+
+  <!-- A duration context for the income statement: 500 revenue less 200
+       external expenses gives a gross profit of 300; and staff costs of 100 are
+       a breakdown of those expenses. Less 50 tax leaves 250 for the year. -->
+  <xbrli:context id="c_year">
+    <xbrli:period>
+      <xbrli:startDate>2024-01-01</xbrli:startDate>
+      <xbrli:endDate>2024-12-31</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+  <g:Revenue          contextRef="c_year" unitRef="DKK">500</g:Revenue>
+  <g:ExternalExpenses contextRef="c_year" unitRef="DKK">200</g:ExternalExpenses>
+  <g:GrossProfitLoss  contextRef="c_year" unitRef="DKK">300</g:GrossProfitLoss>
+  <g:StaffCosts       contextRef="c_year" unitRef="DKK">100</g:StaffCosts>
+  <g:TaxExpense       contextRef="c_year" unitRef="DKK">50</g:TaxExpense>
+  <g:ProfitLoss       contextRef="c_year" unitRef="DKK">250</g:ProfitLoss>
+</xbrli:xbrl>

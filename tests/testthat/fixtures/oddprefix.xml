@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xbrl xmlns="http://www.xbrl.org/2003/instance"
+      xmlns:xbrldi="http://xbrl.org/2006/xbrldi"
+      xmlns:g="http://xbrl.dcca.dk/fsa"
+      xmlns:d="http://xbrl.dcca.dk/cmn">
+  <!-- a filer may bind any prefix it likes: here fsa is "g" and cmn is "d" -->
+  <context id="c1">
+    <entity><segment>
+      <xbrldi:explicitMember dimension="g:ClassesOfPropertyPlantAndEquipmentDimension">g:LandAndBuildingsMember</xbrldi:explicitMember>
+      <xbrldi:explicitMember dimension="d:ConsolidatedSoloDimension">d:ConsolidatedMember</xbrldi:explicitMember>
+    </segment></entity>
+    <period><instant>2024-12-31</instant></period>
+  </context>
+  <g:LandAndBuildings contextRef="c1">42</g:LandAndBuildings>
+</xbrl>

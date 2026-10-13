@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xbrli:xbrl xmlns:xbrli="http://www.xbrl.org/2003/instance"
+            xmlns:xbrldi="http://xbrl.org/2006/xbrldi"
+            xmlns:iso4217="http://www.xbrl.org/2003/iso4217"
+            xmlns:fsa="http://xbrl.dcca.dk/fsa"
+            xmlns:cmn="http://xbrl.dcca.dk/cmn">
+
+  <!-- two dimensions on one context: the consolidated/solo tag is the second,
+       which the row-wise reader used to discard -->
+  <xbrli:context id="ctx_both">
+    <xbrli:entity><xbrli:segment>
+      <xbrldi:explicitMember dimension="fsa:ClassesOfEquityDimension">fsa:ContributedCapitalMember</xbrldi:explicitMember>
+      <xbrldi:explicitMember dimension="cmn:ConsolidatedSoloDimension">cmn:ConsolidatedMember</xbrldi:explicitMember>
+    </xbrli:segment></xbrli:entity>
+    <xbrli:period><xbrli:instant>2023-12-31</xbrli:instant></xbrli:period>
+  </xbrli:context>
+
+  <xbrli:context id="ctx_plain">
+    <xbrli:period>
+      <xbrli:startDate>2023-01-01</xbrli:startDate>
+      <xbrli:endDate>2023-12-31</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+
+  <xbrli:unit id="DKK"><xbrli:measure>iso4217:DKK</xbrli:measure></xbrli:unit>
+
+  <fsa:ContributedCapital contextRef="ctx_both"  unitRef="DKK" decimals="0">500000</fsa:ContributedCapital>
+  <fsa:Revenue            contextRef="ctx_plain" unitRef="DKK" decimals="0">1000000</fsa:Revenue>
+  <cmn:Revenue            contextRef="ctx_plain" unitRef="DKK" decimals="0">7</cmn:Revenue>
+  <fsa:NameOfEntity       contextRef="ctx_plain">Acme A/S</fsa:NameOfEntity>
+</xbrli:xbrl>

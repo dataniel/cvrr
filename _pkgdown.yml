@@ -1,0 +1,66 @@
+url: https://dataniel.github.io/cvrr
+
+template:
+  bootstrap: 5
+
+navbar:
+  structure:
+    left: [intro, reference, articles]
+    right: [github]
+  components:
+    github:
+      icon: fab fa-github
+      href: https://github.com/dataniel/cvrr
+
+home:
+  strip_header: true
+
+reference:
+  - title: Start here
+    contents:
+      - cvrr-package
+
+  - title: Find and fetch published reports
+    contents:
+      - cvr_query
+      - cvr_search
+      - cvr_hits
+      - cvr_download
+
+  - title: Read the filings
+    contents:
+      - read_xbrl
+      - xbrl_accounts
+
+  - title: One table at a time
+    contents:
+      - xbrl_company
+      - xbrl_lines
+      - xbrl_movements
+
+  - title: Name and place the facts
+    contents:
+      - add_taxonomy
+      - read_taxonomy
+      - cvrr_taxonomy_tables
+      - xbrl_fill
+      - xbrl_resolve
+      - xbrl_period
+      - xbrl_note_tables
+
+  - title: Does it add up?
+    contents:
+      - check_statement
+      - check_cascade
+      - check_breakdown
+      - check_movement
+      - check_continuity
+      - check_inclusion
+      - find_signs
+
+
+articles:
+  - title: Get started
+    navbar: ~
+    contents:
+      - cvrr

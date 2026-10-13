@@ -1,0 +1,48 @@
+Package: cvrr
+Title: Danish and Greenlandic Annual Report Filings from the CVR
+    Distribution Service
+Version: 0.1.0
+Authors@R: person("Daniel", "Madsen", email = "danielmadsen@live.dk",
+    role = c("aut", "cre"))
+Description: A complete route from a list of CVR numbers to analysable
+    accounting data. Search Erhvervsstyrelsens free distribution service
+    for the annual reports a set of companies has published, download the
+    documents, and read the machine-readable ones: a directory of XBRL
+    filings becomes one tibble with a row per reported fact, resolved
+    against the taxonomy that gives each fact its label, its place in the
+    statement and its sign convention. From there a set of tables -- the
+    company, where it is, how it was audited, its income statement, its
+    balance sheet, its fixed asset note, what management wrote, and whether
+    any of it adds up -- each opening with the same key columns.
+    Greenlandic companies are covered by the same
+    register and the same taxonomy as Danish ones. Amounts in a filing
+    often arrive without a meaningful sign, so a reconciliation solver
+    recovers the signs that make the line items sum to the reported total.
+License: MIT + file LICENSE
+URL: https://dataniel.github.io/cvrr, https://github.com/dataniel/cvrr
+BugReports: https://github.com/dataniel/cvrr/issues
+Encoding: UTF-8
+LazyData: true
+Language: en
+Roxygen: list(markdown = TRUE)
+Depends:
+    R (>= 4.1)
+Imports:
+    cli,
+    curl,
+    data.table,
+    jsonlite,
+    stats,
+    tibble,
+    utils,
+    xml2
+Suggests:
+    testthat (>= 3.0.0),
+    withr,
+    knitr,
+    rmarkdown,
+    pkgdown
+Config/Needs/website: pkgdown
+Config/testthat/edition: 3
+VignetteBuilder: knitr
+Config/roxygen2/version: 8.0.0

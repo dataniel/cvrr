@@ -1,0 +1,38 @@
+# R build artefacts
+*.Rproj.user
+*.Rhistory
+*.RData
+*.Ruserdata
+.Rproj.user/
+
+# Package build
+*.tar.gz
+*.zip
+/doc/
+/Meta/
+/inst/doc/
+
+# devtools check output
+/*.Rcheck/
+
+# pkgdown site (built and deployed to gh-pages by CI)
+/docs/
+
+# Claude Code
+.claude/
+
+# Register extracts and downloaded filings: personal data (emails) and
+# reklamebeskyttede companies belong outside a repository. Data lives in
+# ../cvrr-data, or wherever options(cvrr.data=) / CVRR_DATA points.
+*.xlsx
+CVRudtr*
+
+# Taxonomy packages: kept beside the repo, never in it
+*.zip
+
+# Personal walkthroughs, not part of the package: the demo scripts and the
+# taxonomy investigation they came out of. Build-ignored as well, so neither
+# ships. Both were tracked in the history before the repository went public;
+# that history is kept locally on the branch arkiv/foer-github, never pushed.
+/dev/
+/inst/examples/

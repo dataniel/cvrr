@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xbrl xmlns:ifrs="http://xbrl.ifrs.org/taxonomy/2014-03-05/ifrs-full"
+      xmlns:iso4217="http://www.xbrl.org/2003/iso4217"
+      xmlns:xbrli="http://www.xbrl.org/2003/instance">
+
+  <xbrli:context id="ctx1">
+    <xbrli:period>
+      <xbrli:startDate>2023-01-01</xbrli:startDate>
+      <xbrli:endDate>2023-12-31</xbrli:endDate>
+    </xbrli:period>
+  </xbrli:context>
+
+  <xbrli:context id="ctx2">
+    <xbrli:period>
+      <xbrli:instant>2023-12-31</xbrli:instant>
+    </xbrli:period>
+  </xbrli:context>
+
+  <xbrli:unit id="DKK">
+    <xbrli:measure>iso4217:DKK</xbrli:measure>
+  </xbrli:unit>
+
+  <ifrs:Revenue contextRef="ctx1" unitRef="DKK" decimals="0">1000000</ifrs:Revenue>
+  <ifrs:Assets  contextRef="ctx2" unitRef="DKK" decimals="0">5000000</ifrs:Assets>
+
+</xbrl>

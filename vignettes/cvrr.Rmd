@@ -1,0 +1,549 @@
+---
+title: "From CVR numbers to accounting data"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{From CVR numbers to accounting data}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment  = "#>",
+  eval     = FALSE
+)
+library(cvrr)
+```
+
+The `cvr_*` functions fetch published annual reports from
+Erhvervsstyrelsens distribution service, and `read_xbrl()` turns the
+machine-readable ones into data. The service is official, free, and built
+for system-to-system access, and annual reports are public documents by
+law. Using it is legitimate. Using it *well* is a matter of a few habits,
+and this article is as much about those as about the function calls.
+
+## The pipeline
+
+Four functions, one step each: build the query, send it, extract the
+hits, download the documents.
+
+```{r}
+cvr_query(
+  cvr          = c("12345678", "87654321"),
+  enddate_from = "2024-01-01",
+  enddate_to   = "2024-12-31"
+) |>
+  cvr_search(contact = "you@example.com") |>
+  cvr_hits() |>
+  cvr_download("data/pdf")
+```
+
+- `cvr_query()` builds the Elasticsearch query (pure, no network).
+  Matches by CVR number (max 1000 per query) and accounting-period end
+  date.
+- `cvr_search()` posts the query and returns the parsed response.
+- `cvr_hits()` flattens the response into a tibble with one row per
+  document (`cvrnummer`, `dokumenturl`, ...).
+- `cvr_download()` downloads the documents and returns the hits tibble
+  with a `path` and a `downloaded` column, so every file can be traced
+  back to the row it came from.
+
+Everything before `cvr_search()` is local; that line is the first real
+API call.
+
+## Greenlandic companies
+
+Greenland's own business register (GER) was folded into CVR on 3 January
+2018. Greenlandic companies therefore have ordinary 8-digit CVR numbers,
+appear in the same distribution service, and file under the same Danish
+GAAP taxonomy — nothing in this package treats them differently. The one
+consequence to plan for is the start date: filings from before 2018 are
+not reachable here under a CVR number.
+
+## Identify yourself
+
+The `contact` argument is mandatory and is sent as the `User-Agent`
+header. Erhvervsstyrelsen asks requests to identify the sender, so use a
+real email address you can be reached at. The function refuses to run
+with an empty contact, but it cannot check that the address is honest;
+that part is yours.
+
+## Be polite about volume
+
+Each hit is one published annual report, and its `dokumenter` array
+typically holds several files (PDF, XML/XBRL, sometimes XHTML), so
+expect roughly 3-5 document rows per company per year in the hits
+tibble.
+
+The query selects *companies and periods*. Selecting which *documents*
+to download is done in R, between `cvr_hits()` and `cvr_download()`:
+
+```{r}
+hits <- hits[hits$dokumentmimetype == "application/pdf", ]
+```
+
+The arithmetic matters: 1000 companies for one year is ~1000 hits but
+3000-5000 documents, which at the default `sleep = 3` is 2.5-4 hours of
+downloading. Filtering to one mimetype first cuts it to ~1000 files
+(under an hour). Always look at the hits tibble before you call
+`cvr_download()`; it tells you exactly what you are about to fetch.
+
+`cvr_download()` enforces a delay of at least 1 second between requests
+(default 3). By default it refuses to start if any of the files it would
+write already exist. A run of that size will sometimes be interrupted, so
+to carry on where it stopped:
+
+```{r}
+files <- cvr_download(hits, "data/pdf", overwrite = "skip")
+files[!files$downloaded, ]      # what still needs another attempt
+```
+
+Files are named by CVR number alone, which means a company's filings for
+different years are told apart only by a `_2`, `_3` suffix in whatever
+order the API returned them. When you are pulling several years, name
+them by period instead:
+
+```{r}
+cvr_download(hits, "data/xml", name_by = c("cvrnummer", "slutdato"))
+```
+
+## Complete results: `scroll`
+
+A single response holds at most `query$size` hits (default 2999).
+`cvr_search()` warns if the response is full, since the result may then
+be truncated. For large pulls (many companies across many years), use
+the scroll API to fetch every matching hit in batches:
+
+```{r}
+response <- cvr_query(many_cvrs, "2015-01-01", "2024-12-31") |>
+  cvr_search(contact = "you@example.com", scroll = TRUE)
+```
+
+`scroll` affects the *completeness of the search result* only. It does
+not reduce the number of documents you download afterwards. A scroll of
+a large panel makes hundreds of requests, so transient failures are
+retried with a backoff rather than discarding the whole pull.
+
+## Test small first
+
+Before a big pull, run the pipeline on a handful of companies and a
+narrow date range, inspect the hits tibble, and only then scale up. If
+you want to see the scroll mechanics work without load, force small
+batches: `scroll = 2` on a query with a few hits walks through the whole
+flow in a couple of requests.
+
+## Working with the XBRL files
+
+The PDF is the human-readable version of the annual report. For data
+work, the XML file next to it is usually the better download: it is
+XBRL, the machine-readable filing, and `read_xbrl()` parses it into a
+tidy tibble with one row per reported fact.
+
+```{r}
+hits_xml <- hits[hits$dokumentmimetype == "application/xml", ]
+cvr_download(hits_xml, "materiale/xbrl")
+
+x <- read_xbrl("materiale/xbrl")
+```
+
+That is the whole read. `read_xbrl()` takes a directory, a vector of
+paths or a single file; it binds the filings into one table, resolves
+the taxonomy on the way in, and carries each filing's own identity —
+`file`, `cvr`, `period_start`, `period_end` — on every row.
+
+Binding filings by hand is the part worth not doing yourself: each
+contributes only the dimension columns it actually uses, so
+`do.call(rbind, ...)` fails and `rbindlist(fill = TRUE)` is needed.
+
+Four things to know about the result:
+
+- **`value` is the figure, `fact` is the text.** The conversion happens
+  once, on the way in. A fact the filer declared numeric that will not
+  parse is reported rather than silently dropped to `NA`.
+- **A filing carries several accounting years.** `period` is the date a
+  fact belongs to and `period_end` is the year the filing is about, so
+  `x$period == x$period_end` is the closing column.
+- **`prefix` and `namespace` identify the element.** A Danish filing
+  binds six or more namespaces at once, and the taxonomy is keyed by the
+  namespace plus the local name, not by `elementid` alone.
+- **`dimensions` and `explicit_member` carry the breakdowns**, including
+  `ConsolidatedSoloDimension`. Roughly a fifth of the contexts in a real
+  filing carry two dimensions, and consolidated figures sit next to the
+  parent company's own. `is_line` marks the figures that are the
+  statement line itself rather than a breakdown of it.
+
+## The tables
+
+`xbrl_accounts()` divides the facts into what an analysis reads.
+
+```{r}
+a <- xbrl_accounts(x)
+
+a$company           # who the company is
+a$location          # where it is
+a$audit             # who audited it, who filed it, with what tool
+a$checks            # whether any of it adds up
+a$income_statement  # lines, in statement order
+a$balance           # lines, with the ones the filer left out derived
+a$movements         # the fixed asset note, movement by movement
+a$prose             # what management wrote
+```
+
+Every table opens with the same key — `cvr`, `name`, `period_start`,
+`period_end` — so moving between them needs no looking, and every table
+ends with `file`, so a figure can be traced back to the document it came
+from. The two statements carry `reconciled` on every row, so filtering to
+the lines that add up needs no join; `a$checks` gathers the per-filing
+verdicts, and they are several columns rather than one because a filing
+can have a balance sheet that closes and an income statement that does
+not.
+
+`a$movements` is the fixed asset schedule as it is printed: one row per
+movement, per asset class, per filing, with `layer` naming the block
+(`cost`, `depreciation`, `revaluation`, `carrying`), `item` the row
+within it (`opening`, `additions`, `disposals`, `transfers`, `charge`,
+`reversals`, `closing`) and `label` the two of them as a note prints the
+line — "Kostpris primo", "Tilgang", "Årets af- og nedskrivninger". The
+labels are the package's own: opening and closing are the same taxonomy
+element at two dates, so the taxonomy's label names both and
+distinguishes neither.
+
+The signs are solved and applied. A Danish filing writes a disposal
+positive about as often as negative, so `value` carries the sign that
+makes the block roll forward — a disposal is negative in it whatever the
+filer wrote — and `tagged` keeps the filer's own number beside it.
+`sign_source` says where the sign came from: `balance` for a stated
+opening or closing amount, `solved` where the block's arithmetic settled
+it, and `convention` where nothing could be solved and the direction was
+taken from what the row is.
+
+```{r}
+# what these companies invested in tangible assets, per year
+add <- a$movements[a$movements$category == "tangible" &
+                     a$movements$item == "additions", ]
+tapply(add$value, format(add$period_end, "%Y"), sum)
+```
+
+The three functions behind it — `xbrl_company()`, `xbrl_lines()` and
+`xbrl_movements()` — can be called on their own when only one table is
+wanted, and `xbrl_lines()` reaches the statements `xbrl_accounts()` does
+not return:
+
+```{r}
+xbrl_lines(x, "cashflow")
+xbrl_lines(x, "equity")
+```
+
+## Signs
+
+XBRL amounts often arrive without a meaningful sign: costs can be
+reported as positive numbers, and the convention varies between
+preparers. `find_signs()` recovers them, because the income statement
+has to reconcile — it searches for the `+1`/`-1` assignment that makes
+the line items sum to the reported total.
+
+The reconciliation is per company and per year, so say so with `by`.
+Without it, every company's `ProfitLoss` row lands in the same group and
+nothing reconciles:
+
+```{r}
+income <- x[x$elementid %in% c(
+  "Revenue", "ExternalExpenses", "EmployeeBenefitsExpense",
+  "TaxExpense", "ProfitLoss"
+), ]
+
+signs <- find_signs(income, elementid, value,
+                    total_label = "ProfitLoss",
+                    by = c(cvr, period_end))
+
+table(signs$status)
+```
+
+Nothing is dropped. Every input row comes back with a `status`:
+
+- `unique` — one assignment reaches the total.
+- `ambiguous` — several do, but items every candidate agreed on are
+  still filled in, flagged `certain = TRUE`.
+- `unsolved` — none did, usually because the set of line items is
+  incomplete.
+- `no_total` / `duplicate_total` — the group had no `ProfitLoss` row, or
+  more than one.
+
+Read `unique` as "only one combination reaches the total", not as "this
+combination is right". If the true assignment was excluded, a
+coincidental one can fit alone. The element names depend on the taxonomy
+the company filed under, so start by looking at the `elementid` values in
+your own data before hardcoding a selection.
+
+## The taxonomy
+
+Everything above works on the numbers alone. The names, the statement
+each figure belongs to, and its debit/credit convention live in the
+taxonomy the filing points at with a single `link:schemaRef` — and that
+URI is an identifier, not a download address. Get the package from
+Erhvervsstyrelsen, once per year of taxonomy, and open it:
+
+```{r}
+tax <- read_taxonomy("XBRL20241001.zip")
+x   <- read_xbrl("materiale/xbrl", taxonomy = tax)
+
+bs <- x[x$statement == "BalanceSheetAccountForm" & x$is_line, ]
+bs[order(bs$code), c("code", "label", "balance", "basis", "value")]
+```
+
+The `code` is the taxonomy's own numbering, so `400.00.020.010.020` is
+"Assets, non-current, property plant and equipment" and sorts into
+statement order by itself. It is stable across companies and years.
+
+Pass a list of taxonomies when the filings span versions — and they
+will. The version a filing declares follows when it was *prepared*, so a
+single accounting year routinely spans several.
+
+### Parent company or group
+
+`basis` says which, and `basis_source` says how it was decided. Group
+figures are tagged with a member of `ConsolidatedSoloDimension`;
+parent-company figures are **not tagged at all**. Reading that absence as
+"parent" is only legitimate because the taxonomy declares a default
+member for the dimension, which `read_taxonomy()` reads rather than
+assumes. Never add the two together.
+
+### Reconciling
+
+```{r}
+bs <- x[x$statement %in% c("BalanceSheetAccountForm", "BalanceSheetReportForm") &
+          x$basis == "parent", ]
+checks <- check_statement(bs)
+table(checks$verdict)
+#>              complete            conflicting             duplicates
+#>                 33252                     25                    217
+#>           sides agree          two groupings  unspecified remainder
+#>                  4304                   4210                    195
+```
+
+Each subtotal is compared with the nearest reported lines below it —
+nearest, because a filer may report a figure while leaving its
+intermediate parent empty. Three outcomes matter:
+
+- `complete` — the reported detail exhausts the subtotal and can be
+  used as it stands. This is the normal result: an unreported line means
+  "not applicable", not "unknown".
+- `two groupings` — the same figures under two groupings. A Danish
+  balance sheet lists debt both by counterparty and by maturity, so the
+  children sum to a multiple of the subtotal. Not an error.
+- `unspecified remainder` — real detail the filing did not break down.
+- `sides differ` — the statement's debit and credit sides do not meet.
+  It does not appear above because every one of the 4,304 balance sheets
+  closes; on an income statement the sides are not meant to meet at all,
+  since it is a cascade, which is what `check_cascade()` walks.
+
+The income statement is not checked this way, because its lines carry
+signs. That is what `find_signs()` is for, and the two are independent:
+one reads a published file, the other only adds up the numbers in front
+of it.
+
+### Movements through the year
+
+`check_statement()` compares instants with instants and
+`check_cascade()` durations with durations. Neither touches the identity
+that binds them, and it is the one an accounts statistic most needs,
+because the movements are where a company states what it invested:
+
+```{r}
+schedules <- c("StatementOfChangesInEquityLongVersion", "DisclosureOfEquity",
+               "DisclosureOfAssets")
+moves <- check_movement(x, statement = schedules)
+moves[c("group", "member", "opening", "closing", "status")]
+```
+
+Scoping matters here. A roll-forward is recognised by its shape — one
+balance at both ends of the year, movements beside it — and two other
+kinds of group have that shape without the meaning. A five-year summary
+sets assets, equity and provisions at two dates each, so nothing says
+which of them the profit in the same group explains; those are skipped
+because they hold more than one balance. The related-party note quotes
+equity and profit alone, which is exactly the shape of an equity
+statement, and no structural rule can tell them apart. Naming the
+statements is what separates them.
+
+Where a filer tags the movements only per class and leaves the total
+column untagged, the classes are summed and `movements` says so — the
+identity then tests that sum as well.
+
+### Handing it to a statistic
+
+The package stops at the filing's own lines. Which element is turnover,
+which is staff costs, and what to do when a filing gives neither, are
+decisions that belong to the statistic's variable definitions and change
+when those change. cvrr's job is to hand over the lines with their
+taxonomy label, their code and their sign convention, and to be honest
+about which of them are derived.
+
+Two things about the Danish and Greenlandic corpus are worth knowing
+before picking elements, because neither is visible in a spot check.
+
+**A top line is not necessarily turnover.** A company in accounting class
+B may present a gross figure instead of turnover, and most do: 82% of the
+4,304 filings carry `GrossProfitLoss` and 19% `GrossResult`, against 14%
+that carry `Revenue` at all. Gross profit is turnover *net of* cost of
+sales, so treating the two as one column produces a turnover series that
+is quietly too small for four filings in five — and nothing downstream
+can tell, because a number is a number.
+
+```{r}
+inc <- a$income_statement
+table(inc$elementid[inc$elementid %in% c("Revenue", "GrossProfitLoss")])
+```
+
+**Staff costs come split or whole.** Of the 2,873 filings that report
+them at all, 1,650 give wages, pension or social security separately and
+1,334 give only `EmployeeBenefitsExpense`. Adding that total into a wages
+column overstates wages by the pension and social security it contains.
+
+And a limit that is in the source rather than in the parsing: 59 of the
+82 variables Danmarks Statistik's Regnskabsstatistik asks for live in the
+taxonomy's own `InformationForStatisticsDenmark` section — turnover split
+into own production and goods for resale, rent excluding heating,
+additions to buildings separately from land — and not one filing of 4,304
+fills in any of it.
+
+## The balance sheet, repaired
+
+`xbrl_lines(x, "balance")` returns the balance sheet as lines, in
+statement order, with the ones the filer left out solved from the
+identities and marked as solved:
+
+```{r}
+b <- xbrl_lines(x, "balance")
+b[b$source != "reported", c("elementid", "value", "source")]
+```
+
+The repair matters more than it sounds. Half the filings never state
+long-term debt — not because it is secret, but because there is none, or
+because the total and the short-term part already say what it is. Reading
+that as "unknown" throws away half the population:
+
+```
+                                    reported   after solving
+long-term debt                          49%            97%
+provisions                              55%            98%
+non-current assets                      85%            99%
+current assets                          94%           100%
+```
+
+The hierarchy alone cannot do this.
+`LiabilitiesOtherThanProvisions` has 33 children in the taxonomy,
+because the same debts are presented twice — by kind, and by term — so
+summing the reported ones counts every krone twice. Five named
+identities are partitions rather than presentations, and each is solved
+for its single unknown. Each was checked first: all five hold to within
+a krone for 99–100% of the filings that state every term.
+
+How right is a solved figure? It was held out and checked: on 400
+filings that *do* state long-term debt, the figure was hidden and solved
+for. It came back exactly right for 397 and within a tenth of a percent
+for 398.
+
+Nothing derived is called reported. About two thousand of the recovered
+long-term figures are nought, which is a value and not a gap — but it is
+a value the filing did not write down, and `source` says so.
+
+## The company behind the figures
+
+Accounts on their own are not a statistic. `xbrl_company()` reads the
+background out of the same filing — identity, period, accounting class,
+auditor, employees, and the management's own description of what the
+company does and how the year went:
+
+```{r}
+xbrl_company(x)
+```
+
+`xbrl_accounts()` divides that row into four: `company` for who this is,
+`location` for where, `audit` for how the report came to be, and `prose`
+for what management wrote. It is 40 columns as one row, and the prose
+fields run to hundreds of characters.
+
+Every filing states its CVR number, name, accounting class, the type of
+auditor's assistance, its period and the date of the general meeting.
+Most state the address (82%), what the company does (79%), the audit firm
+and its CVR number (78%), how the year went (76%) and the average number
+of employees (74%). 99% say something about either their activity or
+their year.
+
+`reporting_class` keeps the filing's own words — it is where
+"mikrovirksomhed" is visible — and `class` carries just the letter, which
+matters because 13 filings write the class in English and grouping on the
+verbatim field would quietly make two populations out of one.
+
+Two things are worth knowing before relying on it.
+
+**The industry is not in the filing.** The taxonomy has a place for it
+and not one filing of 4,304 uses it. A company's industry has to come
+from the register, where it arrives as a code and a label in a single
+field. No empty column is returned
+for it here, because an always-`NA` column reads as "unknown" rather
+than "never asked for".
+
+**Nor is the legal form** -- the taxonomy has no element for it at all.
+But company law puts it in the name, so `form` is read from there:
+99.6% of 4,304 filings carry a recognisable one. That is a reading of
+a string the law decides the contents of, not a guess; where it matters,
+the register is the authority.
+
+**The activity description is not under the name you would guess.**
+`DisclosureOfMainActivitiesAndAccountingAndFinancialMatters` sounds
+right and is used by 7% of filings;
+`DescriptionOfPrimaryActivitiesOfEntity` is used by 72%. Both are read,
+and `activity_source` says which one answered. `development` works the
+same way, falling back from the tagged description of the year to the
+management's review as a whole.
+
+### Not everything is in kroner
+
+`currency` is what the filing states its amounts in, and it is worth
+checking before anything is added up. Of 4,304 filings, 4,293 are
+kroner — and eight are not: six report in Canadian dollars and two in US
+dollars, all of them Greenlandic companies with foreign owners. Three
+more are US dollars throughout with a single stray nil fact tagged DKK,
+and come back as `"DKK+USD"` so that filtering on `"DKK"` does not
+quietly let them in.
+
+Nothing is converted. Every table that hands out amounts carries the
+column, so the currency travels with the figure:
+
+```{r}
+kroner <- a$balance[a$balance$currency == "DKK", ]
+tapply(kroner$value[kroner$elementid == "Assets"],
+       format(kroner$period_end[kroner$elementid == "Assets"], "%Y"), sum)
+```
+
+Eight filings in four thousand is the kind of thing that survives every
+spot check and then puts Canadian dollars into a krone total.
+
+### Persons
+
+A filing names people: the auditor, the executive board, the chairman of
+the general meeting. Those are personal data and an accounts statistic
+does not need them — the audit *firm* and its CVR number answer "who
+audited this" without naming anyone — so they are left out unless asked
+for:
+
+```{r}
+xbrl_company(x, persons = TRUE)[c("auditor_name", "executive_board")]
+```
+
+Use it where there is a reason, and remember the result then carries
+names that should not be redistributed casually.
+
+## The legal frame
+
+Annual reports are public by law, and the distribution service is the
+channel Erhvervsstyrelsen provides for exactly this kind of retrieval.
+Usage falls under the general terms for Danish open public data. The one
+substantive restriction to know about is *reklamebeskyttelse* (CVR-lovens
+paragraf 19): data on protected companies must not be used for direct
+marketing. For statistical and analytical use of financial statements,
+that restriction is irrelevant, but if your use case ever drifts toward
+contacting the companies, check it.
