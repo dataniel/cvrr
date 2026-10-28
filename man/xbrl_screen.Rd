@@ -32,6 +32,8 @@ the key (\code{cvr}, \code{name}, \code{period_start}, \code{period_end}), \code
 gives one), \code{share} (\code{amount} against total assets), \code{severity}, \code{detail}
 (what the check said, in its own words), and \code{file}. Filings with no
 finding have no rows; \code{attr(s, "screened")} says how many were looked at.
+It prints as one line per filing, its most serious finding first; the
+rows underneath are an ordinary tibble.
 }
 \description{
 Runs the package's checks over every filing in \code{x} and returns what they

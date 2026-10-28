@@ -99,6 +99,28 @@ test_that("a figure in the other unit between filings is found", {
   expect_equal(unique(s$file[s$finding == "written in the other unit"]), "b.xml")
 })
 
+test_that("print gives one line per filing, its worst finding first", {
+  s <- suppressMessages(xbrl_screen(grant_as_loan(), what = "cashflow"))
+  out <- paste(capture.output(print(s)), collapse = "\n")
+  expect_match(out, "cvrr screen")
+  expect_match(out, "1 screened")
+  expect_match(out, "borrowed more than owed")
+  expect_match(out, "10.0%")
+})
+
+# Filtering is the commonest thing done to it, and whatever comes back has to
+# print, whether or not the class survived.
+test_that("a subset of a screen still prints", {
+  s <- suppressMessages(xbrl_screen(grant_as_loan(), what = "cashflow"))
+  expect_no_error(capture.output(print(s[s$severity == "high", ])))
+  expect_no_error(capture.output(print(s[, c("cvr", "finding")])))
+})
+
+test_that("a screen with nothing found prints as such", {
+  s <- suppressMessages(xbrl_screen(clean(), what = "cashflow"))
+  expect_match(paste(capture.output(print(s)), collapse = "\n"), "0 with a finding")
+})
+
 test_that("a frame that is not from read_xbrl is refused with a reason", {
   expect_error(xbrl_screen(data.frame(elementid = "Assets")), "read_xbrl")
 })

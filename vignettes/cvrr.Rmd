@@ -356,7 +356,7 @@ s[c("cvr", "name", "period_end", "check", "finding", "share", "severity")]
 
 `share` is the amount against the filing's total assets, and a finding under
 1% of them moves down a level, so the list is ordered by what matters
-rather than by kroner. Over the 4,304 filings of 2020-2024, 533 have a
+rather than by kroner. Over the 4,304 filings of 2020-2024, 532 have a
 finding and 54 a serious one. In 41 of those 54 it is a figure written in
 kroner one year and in thousands the next. That is a tagging error a single filing cannot
 show, because everything inside it is consistent. It shows only when the

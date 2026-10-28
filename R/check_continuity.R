@@ -88,25 +88,33 @@ check_continuity <- function(x, by = "cvr", filing = "year", tol = 1,
 
   # One value per filing, element and date: a filing repeating a figure is
   # still one claim.
-  d <- d[!duplicated(d[c(by, filing, "elementid", "..when")]), , drop = FALSE]
   key <- do.call(paste, c(d[c(by, "elementid", "..when")], sep = "\r"))
-  d <- d[key %in% key[duplicated(key)], , drop = FALSE]
+  once <- !duplicated(paste(key, d[[filing]], sep = "\r"))
+  d <- d[once, , drop = FALSE]
+  key <- key[once]
+  twice <- key %in% key[duplicated(key)]
+  d <- d[twice, , drop = FALSE]
+  key <- key[twice]
   if (nrow(d) == 0) return(tibble::as_tibble(data.frame()))
-  key <- key[key %in% key[duplicated(key)]]
 
-  rows <- lapply(split(seq_len(nrow(d)), key), function(i) {
-    g <- d[i, , drop = FALSE]
-    g <- g[order(g[[filing]]), , drop = FALSE]
-    n <- nrow(g)
-    out <- g[1, c(by, "elementid"), drop = FALSE]
-    out$period <- g$..when[1]
-    out$closed_in <- g[[filing]][1]
-    out$opened_in <- g[[filing]][n]
-    out$closing <- g$value[1]
-    out$opening <- g$value[n]
-    out
-  })
-  r <- as.data.frame(data.table::rbindlist(rows, fill = TRUE))
+  # The earliest filing to state a figure closed on it and the latest reopened
+  # on it. Sorted once, the two ends of each run are its first and last rows.
+  # This was a data frame built per figure, and on a corpus there are hundreds
+  # of thousands of figures stated twice: 200 seconds, where this takes a few.
+  # order() is stable, so ties within a filing date keep the order they came
+  # in, as they did.
+  o <- order(key, d[[filing]])
+  d <- d[o, , drop = FALSE]
+  key <- key[o]
+  first <- !duplicated(key)
+  last <- !duplicated(key, fromLast = TRUE)
+  r <- as.data.frame(d[first, c(by, "elementid"), drop = FALSE])
+  r$period <- d$..when[first]
+  r$closed_in <- d[[filing]][first]
+  r$opened_in <- d[[filing]][last]
+  r$closing <- d$value[first]
+  r$opening <- d$value[last]
+  rownames(r) <- NULL
 
   r$diff <- r$opening - r$closing
   r$rel <- r$diff / pmax(abs(r$closing), 1)

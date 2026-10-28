@@ -76,7 +76,7 @@ borrowing the balance sheet does not owe, and figures that do not reopen in
 the next year's filing: written in the other unit, or restated. Each finding
 carries its amount and its share of total assets, so a rounding difference
 at a large company does not outrank a real gap at a small one. Over 4,304
-Danish and Greenlandic filings for 2020-2024, 533 have a finding and 54 a
+Danish and Greenlandic filings for 2020-2024, 532 have a finding and 54 a
 serious one. In 41 of those 54 the serious finding is a figure written in
 kroner one year and in thousands the next.
 

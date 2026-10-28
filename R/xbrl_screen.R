@@ -70,6 +70,8 @@
 #'   gives one), `share` (`amount` against total assets), `severity`, `detail`
 #'   (what the check said, in its own words), and `file`. Filings with no
 #'   finding have no rows; `attr(s, "screened")` says how many were looked at.
+#'   It prints as one line per filing, its most serious finding first; the
+#'   rows underneath are an ordinary tibble.
 #'
 #' @examples
 #' \dontrun{
@@ -186,7 +188,59 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
       "{nrow(out)} finding{?s} in {hit} of {n} filing{?s}, {sum(out$severity == 'high')} high.")
   }
   attr(out, "screened") <- n
+  class(out) <- c("cvrr_screen", class(out))
   out
+}
+
+#' @export
+print.cvrr_screen <- function(x, n = 10, ...) {
+  need <- c("file", "severity", "finding", "share", "cvr", "name", "period_end")
+  # A subset that lost the columns, or the class's attributes, is just a table.
+  if (!all(need %in% names(x)) || is.null(attr(x, "screened")))
+    return(invisible(NextMethod()))
+
+  sev <- c("high", "medium", "low")
+  files <- unique(x$file)
+  n_sev <- vapply(sev, function(s) length(unique(x$file[x$severity == s])),
+                  integer(1))
+  head <- sprintf("%s screened  ·  %s with a finding",
+                  format(attr(x, "screened"), big.mark = ","),
+                  format(length(files), big.mark = ","))
+  # cli::rule() rather than cli_rule(): a print method writes to stdout.
+  cat(cli::rule(left = cli::style_bold("cvrr screen"), right = head), "\n",
+      sep = "")
+  if (!length(files)) return(invisible(x))
+  cat("  ", paste(sprintf("%s %s", format(n_sev, big.mark = ","), sev),
+                  collapse = "  ·  "),
+      cli::col_grey("  (filings, by their most serious finding)"), "\n\n",
+      sep = "")
+
+  # One line per filing, its most serious finding first -- the rows are
+  # already in that order, so the first row of each filing is it.
+  first <- x[!duplicated(x$file), , drop = FALSE]
+  count <- table(x$file)[first$file]
+  show <- utils::head(first, n)
+  who <- sprintf("%s %s", show$cvr, format(show$period_end, "%Y"))
+  nm <- ifelse(is.na(show$name), "", substr(show$name, 1, 30))
+  pct <- ifelse(is.na(show$share), "", sprintf("%.1f%%", 100 * show$share))
+  more <- ifelse(count[seq_len(nrow(show))] > 1,
+                 sprintf("+%d", count[seq_len(nrow(show))] - 1), "")
+  colour <- c(high = cli::col_red, medium = cli::col_yellow, low = cli::col_grey)
+  # Padded before it is coloured: ANSI codes count as characters to formatC.
+  for (i in seq_len(nrow(show))) {
+    tag <- colour[[show$severity[i]]](formatC(show$severity[i], width = -6))
+    cat("  ", tag, " ", formatC(who[i], width = -14), " ",
+        formatC(nm[i], width = -30), " ", formatC(show$finding[i], width = -26),
+        " ", formatC(pct[i], width = 7), " ", cli::col_grey(more[i]), "\n",
+        sep = "")
+  }
+  if (nrow(first) > n)
+    cat("  ", cli::col_grey(sprintf("... and %s more filings",
+                                   format(nrow(first) - n, big.mark = ","))),
+        "\n", sep = "")
+  cat("  ", cli::col_grey("Every finding is a row: as.data.frame(x), or filter on severity."),
+      "\n", sep = "")
+  invisible(x)
 }
 
 # One row per finding, in the screen's own columns, from any check's rows.

@@ -186,18 +186,23 @@ check_statement <- function(x, by = NULL, period = "closing", tol = 1) {
 # added. Nothing is named; the balance attribute decides.
 .check_sides <- function(g, by, tol, roots,
                          up = .nearest_reported_parent(g$code)) {
+  # The four columns this reads, taken out once: subsetting the whole group,
+  # fifty columns wide, for every root was most of the time this check took.
+  code <- g$code
+  bal <- g$balance
+  val <- g$value
   out <- lapply(roots, function(rt) {
     # A root is not reported, so its children are the lines below it with no
     # reported line between: their nearest reported ancestor, if any, lies
     # outside it.
     pre <- paste0(rt, ".")
-    kids <- g[startsWith(g$code, pre) & (is.na(up) | !startsWith(up, pre)), ,
-              drop = FALSE]
-    kids <- kids[!is.na(kids$balance), , drop = FALSE]
-    if (nrow(kids) < 2) return(NULL)
-    dr <- kids$value[kids$balance == "debit"]
-    cr <- kids$value[kids$balance == "credit"]
+    k <- which(startsWith(code, pre) & (is.na(up) | !startsWith(up, pre)) &
+                 !is.na(bal))
+    if (length(k) < 2) return(NULL)
+    dr <- val[k][bal[k] == "debit"]
+    cr <- val[k][bal[k] == "credit"]
     if (length(dr) == 0 || length(cr) == 0) return(NULL)
+    kids <- list(n = length(k))
 
     diff <- sum(dr) - sum(cr)
     cbind(
@@ -205,7 +210,7 @@ check_statement <- function(x, by = NULL, period = "closing", tol = 1) {
       data.frame(statement = g$statement[1], code = rt, elementid = NA_character_,
                  label = "debit side vs credit side",
                  total = sum(dr), specified = sum(cr), residual = diff,
-                 n_children = nrow(kids), n_partition = NA_integer_,
+                 n_children = kids$n, n_partition = NA_integer_,
                  verdict = if (abs(diff) < tol) "sides agree" else "sides differ",
                  stringsAsFactors = FALSE),
       row.names = NULL

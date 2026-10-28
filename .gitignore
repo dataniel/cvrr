@@ -22,8 +22,8 @@
 .claude/
 
 # Register extracts and downloaded filings: personal data (emails) and
-# reklamebeskyttede companies belong outside a repository. Data lives in
-# ../cvrr-data, or wherever options(cvrr.data=) / CVRR_DATA points.
+# reklamebeskyttede companies belong outside a repository. The package reads
+# whatever path it is given and assumes no location of its own.
 *.xlsx
 CVRudtr*
 
