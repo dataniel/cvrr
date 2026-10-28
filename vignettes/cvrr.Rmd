@@ -235,6 +235,27 @@ not return:
 xbrl_lines(x, "equity")
 ```
 
+## A panel to analyse
+
+The tables above are the filings as they are presented. For analysis the
+same figures are wanted as variables: one row per company and year.
+`xbrl_panel()` builds that from the statements, after the tagging has been
+put right:
+
+```{r}
+p <- xbrl_panel(x)
+p[c("cvr", "period_end", "gross_profit", "operating_profit", "equity",
+    "balance_reconciled")]
+```
+
+Costs are positive amounts, a loss is negative, and tax is the result before
+tax less the result after it, so its sign is right whatever the filer wrote.
+`net_financials` is found the same way and is the complete figure;
+`finance_income` and `finance_expenses` are only the lines with those names.
+A figure the filing does not report stays `NA`. Each row carries the
+company's class, form, assurance and group, and three verdicts on whether
+its statements add up. Excluding a row on them is left to the analysis.
+
 ## Signs
 
 XBRL amounts often arrive without a meaningful sign: costs can be

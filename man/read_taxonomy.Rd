@@ -83,6 +83,7 @@ Other taxonomy:
 \code{\link[=xbrl_lines]{xbrl_lines()}},
 \code{\link[=xbrl_movements]{xbrl_movements()}},
 \code{\link[=xbrl_note_tables]{xbrl_note_tables()}},
+\code{\link[=xbrl_panel]{xbrl_panel()}},
 \code{\link[=xbrl_period]{xbrl_period()}},
 \code{\link[=xbrl_resolve]{xbrl_resolve()}},
 \code{\link[=xbrl_screen]{xbrl_screen()}},

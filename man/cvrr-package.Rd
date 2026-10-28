@@ -107,6 +107,8 @@ complete results, testing small first, and the legal frame.
 with the taxonomy resolved on the way in
 \item \strong{Divide up:} \code{\link[=xbrl_accounts]{xbrl_accounts()}}, and \code{\link[=xbrl_company]{xbrl_company()}}, \code{\link[=xbrl_lines]{xbrl_lines()}}
 and \code{\link[=xbrl_movements]{xbrl_movements()}} for one table at a time
+\item \strong{Analyse:} \code{\link[=xbrl_panel]{xbrl_panel()}} -- one row per company and year, the figures
+as named variables
 \item \strong{Name and place:} \code{\link[=add_taxonomy]{add_taxonomy()}}, \code{\link[=read_taxonomy]{read_taxonomy()}},
 \link{cvrr_taxonomy_tables}
 \item \strong{Derive:} \code{\link[=xbrl_fill]{xbrl_fill()}} and \code{\link[=xbrl_resolve]{xbrl_resolve()}}, which \code{\link[=xbrl_lines]{xbrl_lines()}}

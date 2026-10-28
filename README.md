@@ -59,6 +59,28 @@ statements carry `reconciled` on every row, so filtering to the lines that
 add up needs no join, and `checks` gathers the per-filing verdicts in one
 place.
 
+## A panel to analyse
+
+`xbrl_panel()` turns the filings into one row per company and year, with the
+statement figures as named variables (`revenue`, `gross_profit`,
+`operating_profit`, `profit`, `assets`, `equity`, `cash`, `cf_operating`, ...)
+beside the company's background and how far its figures can be trusted. A
+company's time series and a cross-section of many companies are the same
+table:
+
+```r
+p <- xbrl_panel(x)
+p[p$cvr == "12345678", c("period_end", "gross_profit", "operating_profit", "equity")]
+```
+
+It is built from the statements as `xbrl_lines()` gives them, after the
+tagging has been put right. One sign convention holds throughout: costs are
+positive amounts, a loss is negative, and tax is signed by the two results
+on either side of it. A figure the filing does not report is `NA` and never
+an estimate. Most class B filings start at the gross profit, so `revenue` is
+there for 13% of the corpus and `gross_profit` for 97%. In 99.9% of rows the
+assets equal equity, provisions and debt.
+
 ## Which filings are worth reading?
 
 `xbrl_screen()` runs every check over a pile of filings and returns what
@@ -202,7 +224,8 @@ In the order the route runs.
 |----------|-------------|
 | `read_xbrl()` | Read one filing, a list of them, or a directory, into one tibble with the taxonomy on it |
 | `xbrl_accounts()` | The filings divided into nine keyed tables: the company, where it is, the audit trail, the checks, the three statements, the fixed asset note and the prose |
-| `xbrl_company()` | The company behind a filing: identity, legal form, class, auditor, employees, activity |
+| `xbrl_panel()` | One row per company and year: the statement figures as named variables, background and trust columns |
+| `xbrl_company()` | The company behind a filing: identity, legal form, class, group, auditor and opinion, going concern, employees, activity |
 | `xbrl_lines()` | One statement, line by line, in statement order |
 | `xbrl_movements()` | The fixed asset note as a roll-forward: cost, depreciation and revaluation at each end of the year, and the movements between |
 

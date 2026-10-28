@@ -90,6 +90,8 @@
 #'   with the taxonomy resolved on the way in
 #' * **Divide up:** [xbrl_accounts()], and [xbrl_company()], [xbrl_lines()]
 #'   and [xbrl_movements()] for one table at a time
+#' * **Analyse:** [xbrl_panel()] -- one row per company and year, the figures
+#'   as named variables
 #' * **Name and place:** [add_taxonomy()], [read_taxonomy()],
 #'   [cvrr_taxonomy_tables]
 #' * **Derive:** [xbrl_fill()] and [xbrl_resolve()], which [xbrl_lines()]
