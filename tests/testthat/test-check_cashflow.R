@@ -161,6 +161,20 @@ test_that("the other ties compare the cash flow with the rest of the filing", {
   expect_equal(verdict(r, "capital vs equity"), "cash flow larger")
 })
 
+# Filers tag the net change in a bank facility as a raising of debt, so a
+# negative raising is a repayment. Read as its absolute value it was borrowing,
+# and four of the first fourteen leads on the corpus were that.
+test_that("a negative raising of debt is read as a repayment", {
+  x <- misclassified(raised = -300, grant_line = 0)
+  i <- x$elementid == "ProceedsFromLongtermLiabilitiesClassifiedAsFinancingActivities"
+  x$elementid[i] <- "RaisingOfDebtToCreditInstitutions"
+  x$value[x$elementid == "LongtermLiabilitiesOtherThanProvisions" &
+            x$period == as.Date("2023-12-31")] <- 1700
+  r <- check_cashflow(x)
+  expect_equal(r$reported[r$check == "debt vs balance"], -300)
+  expect_equal(verdict(r, "debt vs balance"), "agrees")
+})
+
 test_that("a filing with no cash flow statement gives no rows", {
   x <- filing(bs("LongtermLiabilitiesOtherThanProvisions", 2700))
   expect_equal(nrow(check_cashflow(x)), 0L)

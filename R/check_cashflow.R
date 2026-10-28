@@ -70,9 +70,9 @@
 #' is the rare and interesting one: net cash raised as debt that the balance
 #' sheet does not show as debt, which is the pattern of a grant booked as a
 #' loan. Before a gap is reported, the readings a filer plausibly meant are
-#' tried: short-term bank debt counted as borrowing, and an untagged financing
-#' remainder as an untagged repayment. `adjustment` names the reading that
-#' closed it.
+#' tried: short-term bank debt counted as borrowing, an untagged financing
+#' remainder as an untagged repayment, and all of financing less what went to
+#' and from the owners. `adjustment` names the reading that closed it.
 #'
 #' Where a gap here is matched, within the same room and in the other direction, by an
 #' untagged remainder or a contrary line outside financing, `offset_by` names
@@ -87,7 +87,7 @@
 #' * the activities sum to the change in cash in 320 of 336 statements, and
 #'   the roll-forward closes in 313 of 325, 35 of them only with the exchange
 #'   rate adjustment;
-#' * `"borrowed more than owed"` is reported for 13 of the 196 filings with
+#' * `"borrowed more than owed"` is reported for 10 of the 196 filings with
 #'   debt to check. That is a lead and not a finding: a loan drawn and repaid
 #'   within the year, or debt classified differently in the two statements,
 #'   can look the same from the outside;
@@ -99,9 +99,9 @@
 #'   Greenland Airports' 2025 group accounts, read separately, show it to the
 #'   krone.
 #'
-#' Planted in the 59 clean statements that tag their borrowing, a grant booked
-#' as a loan is flagged in 34 at 5% of the borrowing, 47 at 10% and 53 at
-#' 35%, and the internal checks pass in all 59 every time. At 5% the planted
+#' Planted in the 61 clean statements that tag their borrowing, a grant booked
+#' as a loan is flagged in 34 at 5% of the borrowing, 48 at 10% and 54 at
+#' 35%, while the internal checks still pass in 60 of the 61. At 5% the planted
 #' gap is the size of the room itself, so many fall inside it: `rel` is the
 #' price of not flagging every lease.
 #'
@@ -232,6 +232,11 @@ check_cashflow <- function(x, by = NULL, tol = 1, rel = 0.05) {
   # Short-term borrowing, which a filer may count as debt raised.
   short_debt = c("ShorttermDebtToBanks", "ShorttermMortgageDebt",
                  "ShorttermDebtToOtherCreditInstitutions"),
+  # The owners' part of financing, which is not debt.
+  equity_in  = c("CashCapitalIncrease", "SaleOfTreasuryShares"),
+  equity_out = c("CashCapitalReduction", "PurchaseOfTreasurySharesCashFlow",
+                 "DividendsPaidClassifiedAsFinancingActivities",
+                 "DividendPaidCashFlow", "CostsRelatedToChangesInContributedCapital"),
   bs_cash    = "CashAndCashEquivalents",
   # What a filing may count as cash, or against it.
   cash_plus  = c(securities = "SharesIncludedAsCashAndCashEquivalents"),
@@ -366,37 +371,62 @@ check_cashflow <- function(x, by = NULL, tol = 1, rel = 0.05) {
         "against its element", elementid = contrary$elementid[j])
 
   # -- borrowing against the debt the balance sheet shows
-  pick <- function(all_of, specific) {
-    v <- now(all_of)
-    if (!is.na(v)) return(v)
-    v <- vapply(specific, now, numeric(1))
-    if (all(is.na(v))) NA_real_ else sum(abs(v), na.rm = TRUE)
+  # Signed the way every other line here is, not by abs(). A raising of debt
+  # reported negative is a repayment: filers tag the net change in a bank
+  # facility as `RaisingOfDebtToCreditInstitutions`, and read as its absolute
+  # value it was borrowing -- four of the first fourteen leads this check
+  # raised on the corpus were that, and not the filings.
+  flow <- function(id, inflow) {
+    v <- now(id)
+    if (is.na(v)) NA_real_ else if (inflow) v else .cf_direction(v, "credit", out_pos)
   }
-  raised <- pick(.CF$raised_all, .CF$raised)
-  repaid <- pick(.CF$repaid_all, .CF$repaid)
+  pick <- function(all_of, specific, inflow) {
+    v <- flow(all_of, inflow)
+    if (!is.na(v)) return(v)
+    v <- vapply(specific, flow, numeric(1), inflow = inflow)
+    if (all(is.na(v))) NA_real_ else sum(v, na.rm = TRUE)
+  }
+  raised <- pick(.CF$raised_all, .CF$raised, TRUE)
+  repaid <- pick(.CF$repaid_all, .CF$repaid, FALSE)
   debt_end  <- vapply(.CF$debt, now, numeric(1))
   debt_open <- vapply(.CF$debt, opening, numeric(1))
   if ((!is.na(raised) || !is.na(repaid)) && !is.na(debt_end[1]) &&
       !is.na(debt_open[1])) {
     # A missing short-term part is nil at both ends, not unknown: a filing with
     # no long-term loan falling due has nothing to tag there.
-    net <- sum(abs(raised), na.rm = TRUE) - sum(abs(repaid), na.rm = TRUE)
+    net <- sum(raised, repaid, na.rm = TRUE)
     moved <- sum(debt_end, na.rm = TRUE) - sum(debt_open, na.rm = TRUE)
+
+    # Everything financing did that was not the owners': what is left of the
+    # activity once capital, dividends and treasury shares are taken out. It
+    # catches the repayment a filer put on a line of its own making.
+    owners <- c(stats::setNames(vapply(.CF$equity_in, flow, numeric(1), inflow = TRUE),
+                                .CF$equity_in),
+                stats::setNames(vapply(.CF$equity_out, flow, numeric(1), inflow = FALSE),
+                                .CF$equity_out))
+    # Two elements for the same dividend: the first one reported is it.
+    div <- intersect(c("DividendsPaidClassifiedAsFinancingActivities",
+                       "DividendPaidCashFlow"), names(owners)[!is.na(owners)])
+    if (length(div) > 1) owners[div[-1]] <- NA
+    non_owner <- sec[["financing"]] - sum(owners, na.rm = TRUE)
 
     # The most charitable reading wins. Where the line between long- and
     # short-term debt runs is the filer's to draw, and a loan raised long and
     # drawn on short moves between them; a repayment is as often left untagged
     # as tagged. Each reading below is one a filer plausibly meant, and a gap
     # is reported only where none of them closes it. Over the 196 filings in
-    # the corpus with debt to check, that and the direction below took the
-    # flags from 44 to 14. Greenland Airports is flagged under every reading.
+    # the corpus with debt to check, the readings, the direction below and the
+    # signs above took the flags from 44 rows to 10 filings. Greenland Airports
+    # is flagged under every reading.
     st_debt <- vapply(.CF$short_debt, function(id) now(id) - opening(id),
                       numeric(1))
+    moved_all <- moved + sum(st_debt, na.rm = TRUE)
     readings <- c(
       narrow     = net - moved,
-      with_short = net - (moved + sum(st_debt, na.rm = TRUE)),
+      with_short = net - moved_all,
       untagged   = if (!is.na(untagged[["financing"]]))
-                     net + untagged[["financing"]] - moved else NA_real_)
+                     net + untagged[["financing"]] - moved else NA_real_,
+      all_financing = if (!is.na(non_owner)) non_owner - moved_all else NA_real_)
     readings <- readings[!is.na(readings)]
     gap <- readings[which.min(abs(readings))]
     room <- max(tol, rel * max(abs(net), abs(moved)))

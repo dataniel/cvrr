@@ -99,9 +99,9 @@ grew by more than the cash raised, and a lease explains it. \code{"fell more tha
 is the rare and interesting one: net cash raised as debt that the balance
 sheet does not show as debt, which is the pattern of a grant booked as a
 loan. Before a gap is reported, the readings a filer plausibly meant are
-tried: short-term bank debt counted as borrowing, and an untagged financing
-remainder as an untagged repayment. \code{adjustment} names the reading that
-closed it.
+tried: short-term bank debt counted as borrowing, an untagged financing
+remainder as an untagged repayment, and all of financing less what went to
+and from the owners. \code{adjustment} names the reading that closed it.
 
 Where a gap here is matched, within the same room and in the other direction, by an
 untagged remainder or a contrary line outside financing, \code{offset_by} names
@@ -118,7 +118,7 @@ those 328:
 \item the activities sum to the change in cash in 320 of 336 statements, and
 the roll-forward closes in 313 of 325, 35 of them only with the exchange
 rate adjustment;
-\item \code{"borrowed more than owed"} is reported for 13 of the 196 filings with
+\item \code{"borrowed more than owed"} is reported for 10 of the 196 filings with
 debt to check. That is a lead and not a finding: a loan drawn and repaid
 within the year, or debt classified differently in the two statements,
 can look the same from the outside;
@@ -131,9 +131,9 @@ Greenland Airports' 2025 group accounts, read separately, show it to the
 krone.
 }
 
-Planted in the 59 clean statements that tag their borrowing, a grant booked
-as a loan is flagged in 34 at 5\% of the borrowing, 47 at 10\% and 53 at
-35\%, and the internal checks pass in all 59 every time. At 5\% the planted
+Planted in the 61 clean statements that tag their borrowing, a grant booked
+as a loan is flagged in 34 at 5\% of the borrowing, 48 at 10\% and 54 at
+35\%, while the internal checks still pass in 60 of the 61. At 5\% the planted
 gap is the size of the room itself, so many fall inside it: \code{rel} is the
 price of not flagging every lease.
 }
