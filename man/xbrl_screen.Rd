@@ -15,7 +15,8 @@ xbrl_screen(
 \arguments{
 \item{x}{A tibble from \code{\link[=read_xbrl]{read_xbrl()}}: any number of filings, any number of
 companies. Several years of the same company add the checks between
-filings.}
+filings. From \code{\link[=xbrl_validate]{xbrl_validate()}}, the checks it ran are read rather than
+run again.}
 
 \item{basis}{\code{"parent"} and \code{"consolidated"}, the default, screens both; a
 group's cash flow statement is usually only consolidated.}
@@ -163,6 +164,7 @@ Other taxonomy:
 \code{\link[=xbrl_report_data]{xbrl_report_data()}},
 \code{\link[=xbrl_resolve]{xbrl_resolve()}},
 \code{\link[=xbrl_robustness]{xbrl_robustness()}},
-\code{\link[=xbrl_standardise]{xbrl_standardise()}}
+\code{\link[=xbrl_standardise]{xbrl_standardise()}},
+\code{\link[=xbrl_validate]{xbrl_validate()}}
 }
 \concept{taxonomy}

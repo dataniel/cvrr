@@ -32,7 +32,9 @@
 #' from the losing reading is worse than a missing one.
 #'
 #' @param x A tibble from [read_xbrl()]. The taxonomy has to be on it: the
-#'   hierarchy is what names a line the filing never mentioned.
+#'   hierarchy is what names a line the filing never mentioned. From
+#'   [xbrl_validate()], the lines it solved are returned as they are, at the
+#'   default `fill` and `taxonomy`.
 #' @param statement Which statement. `"balance"`, `"income"`, `"cashflow"` or
 #'   `"equity"`, or one or more taxonomy statement names for anything else --
 #'   `unique(cvrr_line$statement)` lists them.
@@ -78,6 +80,13 @@ xbrl_lines <- function(x, statement = "balance",
                        taxonomy = NULL) {
   basis <- match.arg(basis)
   want  <- .statement_names(statement)
+
+  # Facts from xbrl_validate() carry the lines at the defaults already.
+  if (isTRUE(fill) && is.null(taxonomy) && is.character(statement) &&
+      length(statement) == 1) {
+    hit <- .validated(x)$lines[[basis]][[statement]]
+    if (!is.null(hit)) return(hit)
+  }
 
   need <- c("file", "statement", "code", "elementid", "value", "is_line",
             "basis", "period", "period_end")

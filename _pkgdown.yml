@@ -34,6 +34,7 @@ reference:
 
   - title: Analyse
     contents:
+      - xbrl_validate
       - xbrl_panel
       - xbrl_ratios
       - xbrl_robustness

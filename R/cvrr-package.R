@@ -90,6 +90,8 @@
 #'   with the taxonomy resolved on the way in
 #' * **Divide up:** [xbrl_accounts()], and [xbrl_company()], [xbrl_lines()]
 #'   and [xbrl_movements()] for one table at a time
+#' * **Validate once:** [xbrl_validate()] -- the tagging put right and the
+#'   statements checked, carried along to everything below
 #' * **Analyse:** [xbrl_panel()] -- one row per company and year, the figures
 #'   as named variables -- then [xbrl_ratios()] and [xbrl_robustness()]
 #' * **Report:** [xbrl_report()] -- one HTML page, chosen by the data -- and

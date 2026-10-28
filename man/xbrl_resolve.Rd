@@ -123,6 +123,7 @@ Other taxonomy:
 \code{\link[=xbrl_report_data]{xbrl_report_data()}},
 \code{\link[=xbrl_robustness]{xbrl_robustness()}},
 \code{\link[=xbrl_screen]{xbrl_screen()}},
-\code{\link[=xbrl_standardise]{xbrl_standardise()}}
+\code{\link[=xbrl_standardise]{xbrl_standardise()}},
+\code{\link[=xbrl_validate]{xbrl_validate()}}
 }
 \concept{taxonomy}

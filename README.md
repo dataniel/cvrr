@@ -59,6 +59,28 @@ statements carry `reconciled` on every row, so filtering to the lines that
 add up needs no join, and `checks` gathers the per-filing verdicts in one
 place.
 
+## Validate once, use many times
+
+Screening, the panel and the reports all need the same work done first:
+the tagging put right, the three statements checked and solved line by
+line. `xbrl_validate()` does it once and attaches it to the facts, and every
+later step reads it instead of doing it again:
+
+```r
+v <- read_xbrl("materiale/xbrl") |>
+  xbrl_validate()
+s <- xbrl_screen(v)
+p <- xbrl_panel(v)
+xbrl_report(v, "12345678.html", cvr = "12345678", peers = p)
+```
+
+The result is still the facts, not a panel. A panel keeps a few dozen
+variables per company and year and drops the rest: the notes and the
+dimensions, the lines beyond its variables, and where each figure came from.
+A subset of whole filings (`v[v$cvr == "12345678", ]`) keeps the work. Each
+filing is fingerprinted, so a figure changed after validation is never read
+from stale work. That filing is simply done again.
+
 ## A panel to analyse
 
 `xbrl_panel()` turns the filings into one row per company and year, with the
@@ -264,6 +286,7 @@ In the order the route runs.
 |----------|-------------|
 | `read_xbrl()` | Read one filing, a list of them, or a directory, into one tibble with the taxonomy on it |
 | `xbrl_accounts()` | The filings divided into nine keyed tables: the company, where it is, the audit trail, the checks, the three statements, the fixed asset note and the prose |
+| `xbrl_validate()` | Standardise and check the filings once, and carry the work to every later step |
 | `xbrl_panel()` | One row per company and year: the statement figures as named variables, background and trust columns |
 | `xbrl_ratios()` | Key ratios, the change from last year, and the place among peers |
 | `xbrl_robustness()` | Signs of financial vulnerability, held against which companies stopped filing, and what the figures could absorb |

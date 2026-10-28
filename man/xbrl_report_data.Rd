@@ -14,7 +14,9 @@ xbrl_report_data(
 )
 }
 \arguments{
-\item{x}{A tibble from \code{\link[=read_xbrl]{read_xbrl()}}.}
+\item{x}{A tibble from \code{\link[=read_xbrl]{read_xbrl()}}, or from \code{\link[=xbrl_validate]{xbrl_validate()}} -- which
+is the way to make several reports on the same filings without
+validating them for each.}
 
 \item{cvr}{CVR numbers to report on. \code{NULL}, the default, reports on every
 company in \code{x}.}
@@ -105,6 +107,7 @@ Other taxonomy:
 \code{\link[=xbrl_resolve]{xbrl_resolve()}},
 \code{\link[=xbrl_robustness]{xbrl_robustness()}},
 \code{\link[=xbrl_screen]{xbrl_screen()}},
-\code{\link[=xbrl_standardise]{xbrl_standardise()}}
+\code{\link[=xbrl_standardise]{xbrl_standardise()}},
+\code{\link[=xbrl_validate]{xbrl_validate()}}
 }
 \concept{taxonomy}

@@ -14,7 +14,9 @@ xbrl_lines(
 }
 \arguments{
 \item{x}{A tibble from \code{\link[=read_xbrl]{read_xbrl()}}. The taxonomy has to be on it: the
-hierarchy is what names a line the filing never mentioned.}
+hierarchy is what names a line the filing never mentioned. From
+\code{\link[=xbrl_validate]{xbrl_validate()}}, the lines it solved are returned as they are, at the
+default \code{fill} and \code{taxonomy}.}
 
 \item{statement}{Which statement. \code{"balance"}, \code{"income"}, \code{"cashflow"} or
 \code{"equity"}, or one or more taxonomy statement names for anything else --
@@ -118,6 +120,7 @@ Other taxonomy:
 \code{\link[=xbrl_resolve]{xbrl_resolve()}},
 \code{\link[=xbrl_robustness]{xbrl_robustness()}},
 \code{\link[=xbrl_screen]{xbrl_screen()}},
-\code{\link[=xbrl_standardise]{xbrl_standardise()}}
+\code{\link[=xbrl_standardise]{xbrl_standardise()}},
+\code{\link[=xbrl_validate]{xbrl_validate()}}
 }
 \concept{taxonomy}

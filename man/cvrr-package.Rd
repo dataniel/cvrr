@@ -107,6 +107,8 @@ complete results, testing small first, and the legal frame.
 with the taxonomy resolved on the way in
 \item \strong{Divide up:} \code{\link[=xbrl_accounts]{xbrl_accounts()}}, and \code{\link[=xbrl_company]{xbrl_company()}}, \code{\link[=xbrl_lines]{xbrl_lines()}}
 and \code{\link[=xbrl_movements]{xbrl_movements()}} for one table at a time
+\item \strong{Validate once:} \code{\link[=xbrl_validate]{xbrl_validate()}} -- the tagging put right and the
+statements checked, carried along to everything below
 \item \strong{Analyse:} \code{\link[=xbrl_panel]{xbrl_panel()}} -- one row per company and year, the figures
 as named variables -- then \code{\link[=xbrl_ratios]{xbrl_ratios()}} and \code{\link[=xbrl_robustness]{xbrl_robustness()}}
 \item \strong{Report:} \code{\link[=xbrl_report]{xbrl_report()}} -- one HTML page, chosen by the data -- and

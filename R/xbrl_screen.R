@@ -73,7 +73,8 @@
 #'
 #' @param x A tibble from [read_xbrl()]: any number of filings, any number of
 #'   companies. Several years of the same company add the checks between
-#'   filings.
+#'   filings. From [xbrl_validate()], the checks it ran are read rather than
+#'   run again.
 #' @param basis `"parent"` and `"consolidated"`, the default, screens both; a
 #'   group's cash flow statement is usually only consolidated.
 #' @param what Which checks to run: any of `"auditor"`, `"balance"`,
@@ -140,6 +141,9 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
     technical <- attr(x, "standardisation")
   }
   d <- x[x$basis %in% basis, , drop = FALSE]
+  # Facts from xbrl_validate() carry the checks already run; read, not rerun.
+  w <- .validated(x)
+  if (!is.null(w)) w <- .validated_basis(w, basis)
   found <- list()
   # The checks' own output, kept for whoever goes on to build a panel of the
   # same facts: xbrl_panel() reads its trust columns off them instead of
@@ -149,7 +153,7 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
   # Who each filing is, for the auditor's findings and for the background
   # every finding carries: what is unusual for an audited group is ordinary
   # for a micro company nobody audits.
-  comp <- suppressMessages(xbrl_company(x, prose = FALSE))
+  comp <- w$company %||% suppressMessages(xbrl_company(x, prose = FALSE))
   checks$company <- comp
   if ("auditor" %in% what && nrow(comp)) {
     op <- comp[comp$opinion_kind %in% c("qualified", "adverse", "disclaimer"), ]
@@ -164,7 +168,7 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
   }
 
   if ("balance" %in% what) {
-    st <- suppressMessages(check_statement(
+    st <- w$statement %||% suppressMessages(check_statement(
       d[d$statement %in% .BALANCE_STATEMENTS, , drop = FALSE]))
     checks$statement <- st
     if (nrow(st)) {
@@ -181,7 +185,7 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
   }
 
   if ("income" %in% what) {
-    cs <- suppressWarnings(suppressMessages(check_cascade(d)))
+    cs <- w$cascade %||% suppressWarnings(suppressMessages(check_cascade(d)))
     checks$cascade <- cs
     if (nrow(cs)) {
       bad <- cs[cs$status %in% c("unsolved", "unexplained"), , drop = FALSE]
@@ -192,7 +196,7 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
   }
 
   if ("cashflow" %in% what) {
-    cf <- check_cashflow(d)
+    cf <- w$cashflow %||% check_cashflow(d)
     checks$cashflow <- cf
     if (nrow(cf)) {
       internal <- cf[cf$check %in% c("activities", "rollforward",

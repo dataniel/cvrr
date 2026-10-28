@@ -24,7 +24,9 @@
 #' nothing to rank against, and the report says nothing about rank rather
 #' than rank a company against itself.
 #'
-#' @param x A tibble from [read_xbrl()].
+#' @param x A tibble from [read_xbrl()], or from [xbrl_validate()] -- which
+#'   is the way to make several reports on the same filings without
+#'   validating them for each.
 #' @param cvr CVR numbers to report on. `NULL`, the default, reports on every
 #'   company in `x`.
 #' @param type `"filing"`, `"company"`, `"cross_section"` or `"panel"`; `NULL`
@@ -74,12 +76,12 @@ xbrl_report_data <- function(x, cvr = NULL, type = NULL, peers = NULL,
   }
   cvrs <- unique(x$cvr)
 
-  xs <- suppressMessages(xbrl_standardise(x))
+  # Validated once, here or before: the screen and the panel both read it.
+  xs <- if (is.null(.validated(x))) suppressMessages(xbrl_validate(x)) else x
   sc <- suppressMessages(xbrl_screen(xs))
   # Both bases: a group's report is about the group, and its consolidated
   # figures are only there if they are asked for.
-  p <- suppressMessages(xbrl_panel(xs, basis = c("parent", "consolidated"),
-                                   .checks = attr(sc, "checks")))
+  p <- suppressMessages(xbrl_panel(xs, basis = c("parent", "consolidated")))
 
   # Ranked among peers where there are any: the companies themselves, and the
   # peers that are not them.

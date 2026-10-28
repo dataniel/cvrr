@@ -41,7 +41,8 @@
 #' filing. A row is kept whatever they say: excluding is the analysis's
 #' decision, and it can only be made if the row is there.
 #'
-#' @param x A tibble from [read_xbrl()].
+#' @param x A tibble from [read_xbrl()], or from [xbrl_validate()], whose
+#'   lines and checks are then read rather than computed again.
 #' @param basis `"parent"` (default), `"consolidated"`, or both. A filing with
 #'   group accounts has a row for each basis asked for.
 #' @param standardise Run [xbrl_standardise()] first, if it has not been.
@@ -85,7 +86,11 @@ xbrl_panel <- function(x, basis = "parent", standardise = TRUE, .checks = NULL) 
   n <- length(unique(x$file))
   cli::cli_alert_info("Building a panel of {n} filing{?s}.")
 
-  rows <- lapply(basis, function(b) .panel_basis(x, b))
+  # Facts from xbrl_validate() carry the lines and the checks; the panel is
+  # then only cut from them.
+  w <- .validated(x)
+  .checks <- .checks %||% w
+  rows <- lapply(basis, function(b) .panel_basis(x, b, w$lines[[b]]))
   out <- do.call(rbind, rows)
   if (is.null(out) || !nrow(out)) out <- .panel_skeleton()
 
@@ -172,11 +177,12 @@ xbrl_panel <- function(x, basis = "parent", standardise = TRUE, .checks = NULL) 
 )
 
 # One basis: the three statements' lines, widened to one row per filing.
-.panel_basis <- function(x, basis) {
+.panel_basis <- function(x, basis, lines = NULL) {
   st <- c(income = "income", balance = "balance", cashflow = "cashflow")
-  lines <- lapply(st, function(s)
-    tryCatch(suppressMessages(xbrl_lines(x, s, basis = basis)),
-             error = function(e) NULL))
+  if (is.null(lines))
+    lines <- lapply(st, function(s)
+      tryCatch(suppressMessages(xbrl_lines(x, s, basis = basis)),
+               error = function(e) NULL))
   files <- unique(unlist(lapply(lines, function(l) l$file)))
   if (!length(files)) return(NULL)
 

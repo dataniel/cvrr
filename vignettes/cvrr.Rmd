@@ -235,6 +235,23 @@ not return:
 xbrl_lines(x, "equity")
 ```
 
+## Validate once
+
+Everything from here on needs the same work done first: the tagging put
+right, the statements checked and solved. `xbrl_validate()` does it once
+and attaches it to the facts, so the screen, the panel and every report read
+it instead of repeating it:
+
+```{r}
+v <- xbrl_validate(x)
+```
+
+`v` is still the facts, one row per fact. A panel is a view cut from them,
+and it would drop the notes, the dimensions and where each figure came from.
+Keep `v` and cut what is needed. A subset of whole filings keeps the work,
+and a filing whose figures have changed since is done again rather than read
+from stale work.
+
 ## A panel to analyse
 
 The tables above are the filings as they are presented. For analysis the
@@ -243,7 +260,7 @@ same figures are wanted as variables: one row per company and year.
 put right:
 
 ```{r}
-p <- xbrl_panel(x)
+p <- xbrl_panel(v)
 p[c("cvr", "period_end", "gross_profit", "operating_profit", "equity",
     "balance_reconciled")]
 ```
@@ -279,8 +296,8 @@ year, one company over time, many companies in one year, or many over
 several:
 
 ```{r}
-xbrl_report(x, "company.html", cvr = "12345678", peers = p)
-xbrl_report(x, "all.html")
+xbrl_report(v, "company.html", cvr = "12345678", peers = p)
+xbrl_report(v, "all.html")
 ```
 
 It opens with what matters most, as sentences. Each sentence is a rule
