@@ -81,6 +81,28 @@ an estimate. Most class B filings start at the gross profit, so `revenue` is
 there for 13% of the corpus and `gross_profit` for 97%. In 99.9% of rows the
 assets equal equity, provisions and debt.
 
+## Ratios, and how robust a company is
+
+`xbrl_ratios()` adds the ratios statistics offices publish, the change from
+the previous year, and each company's place among comparable companies the
+same year. `xbrl_robustness()` adds the signs of financial vulnerability:
+negative equity, capital lost, thin equity, two losses, heavy short-term
+debt, weak interest cover, a return well under peers, youth, and a going
+concern uncertainty. It also says how far the gross profit could fall before
+the operating profit is gone, and how many months of wages the cash covers:
+
+```r
+r <- xbrl_robustness(xbrl_panel(x))
+r[r$n_factors >= 3, c("cvr", "name", "period_end", "n_factors")]
+```
+
+The factors are held against the data. A company that files no annual
+report in the next two years has most often ceased. With weak interest
+cover, capital lost or a weak return that happened 2.6-2.7 times as often as
+without, and with four or more factors 13.5% of the time against 4.8% with
+none. A branch of industry is the better comparison group, but it is not in a
+filing. Join it from a register extract and pass `group = "branch"`.
+
 ## Which filings are worth reading?
 
 `xbrl_screen()` runs every check over a pile of filings and returns what
@@ -225,6 +247,8 @@ In the order the route runs.
 | `read_xbrl()` | Read one filing, a list of them, or a directory, into one tibble with the taxonomy on it |
 | `xbrl_accounts()` | The filings divided into nine keyed tables: the company, where it is, the audit trail, the checks, the three statements, the fixed asset note and the prose |
 | `xbrl_panel()` | One row per company and year: the statement figures as named variables, background and trust columns |
+| `xbrl_ratios()` | Key ratios, the change from last year, and the place among peers |
+| `xbrl_robustness()` | Signs of financial vulnerability, held against which companies stopped filing, and what the figures could absorb |
 | `xbrl_company()` | The company behind a filing: identity, legal form, class, group, auditor and opinion, going concern, employees, activity |
 | `xbrl_lines()` | One statement, line by line, in statement order |
 | `xbrl_movements()` | The fixed asset note as a roll-forward: cost, depreciation and revaluation at each end of the year, and the movements between |

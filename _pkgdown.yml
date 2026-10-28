@@ -31,7 +31,12 @@ reference:
     contents:
       - read_xbrl
       - xbrl_accounts
+
+  - title: Analyse
+    contents:
       - xbrl_panel
+      - xbrl_ratios
+      - xbrl_robustness
 
   - title: One table at a time
     contents:

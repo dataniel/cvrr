@@ -49,8 +49,9 @@
 #'
 #' @return A tibble of class `cvrr_panel`: the key (`cvr`, `name`,
 #'   `period_start`, `period_end`), `basis`, the figures, the background
-#'   (`class`, `form`, `micro`, `assurance`, `opinion_kind`, `going_concern`,
-#'   `in_group`, `group_accounts`, `employees`, `currency`), the trust columns,
+#'   (`class`, `form`, `micro`, `founded`, `assurance`, `opinion_kind`,
+#'   `going_concern`, `in_group`, `group_accounts`, `employees`, `currency`),
+#'   the trust columns,
 #'   and `file`. Amounts are in the reporting currency as filed.
 #'
 #' @examples
@@ -89,9 +90,9 @@ xbrl_panel <- function(x, basis = "parent", standardise = TRUE) {
   # Who the company is: the same for every basis of a filing.
   comp <- suppressMessages(xbrl_company(x, prose = FALSE))
   j <- match(out$file, comp$file)
-  for (col in c("name", "class", "form", "micro", "assurance", "opinion_kind",
-                "going_concern", "in_group", "group_accounts", "employees",
-                "currency"))
+  for (col in c("name", "class", "form", "micro", "founded", "assurance",
+                "opinion_kind", "going_concern", "in_group", "group_accounts",
+                "employees", "currency"))
     out[[col]] <- if (col %in% names(comp)) comp[[col]][j] else NA
 
   # How far to trust it.
@@ -155,6 +156,7 @@ xbrl_panel <- function(x, basis = "parent", standardise = TRUE) {
   trade_receivables      = list(st = "balance", el = "ShorttermTradeReceivables"),
   cash                   = list(st = "balance", el = "CashAndCashEquivalents"),
   equity                 = list(st = "balance", el = "Equity"),
+  contributed_capital    = list(st = "balance", el = "ContributedCapital"),
   provisions             = list(st = "balance", el = "Provisions"),
   longterm_debt          = list(st = "balance", el = "LongtermLiabilitiesOtherThanProvisions"),
   shortterm_debt         = list(st = "balance", el = "ShorttermLiabilitiesOtherThanProvisions"),

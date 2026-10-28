@@ -256,6 +256,21 @@ A figure the filing does not report stays `NA`. Each row carries the
 company's class, form, assurance and group, and three verdicts on whether
 its statements add up. Excluding a row on them is left to the analysis.
 
+Two functions read the panel. `xbrl_ratios()` adds the published ratios, the
+change from the previous annual report, and the median and percentile among
+comparable companies. `xbrl_robustness()` adds the signs of vulnerability
+from Danmarks Nationalbank's bankruptcy model, with capital lost and going
+concern added, and two buffers:
+
+```{r}
+r <- xbrl_robustness(p)
+attr(r, "validation")    # each factor against the companies that stopped filing
+```
+
+Comparable means the same accounting class unless told otherwise. A branch
+of industry is better and is not in a filing; join it on `cvr` and pass its
+column as `group`.
+
 ## Signs
 
 XBRL amounts often arrive without a meaningful sign: costs can be

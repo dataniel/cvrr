@@ -18,8 +18,9 @@ Default \code{TRUE}.}
 \value{
 A tibble of class \code{cvrr_panel}: the key (\code{cvr}, \code{name},
 \code{period_start}, \code{period_end}), \code{basis}, the figures, the background
-(\code{class}, \code{form}, \code{micro}, \code{assurance}, \code{opinion_kind}, \code{going_concern},
-\code{in_group}, \code{group_accounts}, \code{employees}, \code{currency}), the trust columns,
+(\code{class}, \code{form}, \code{micro}, \code{founded}, \code{assurance}, \code{opinion_kind},
+\code{going_concern}, \code{in_group}, \code{group_accounts}, \code{employees}, \code{currency}),
+the trust columns,
 and \code{file}. Amounts are in the reporting currency as filed.
 }
 \description{
@@ -104,7 +105,9 @@ Other taxonomy:
 \code{\link[=xbrl_movements]{xbrl_movements()}},
 \code{\link[=xbrl_note_tables]{xbrl_note_tables()}},
 \code{\link[=xbrl_period]{xbrl_period()}},
+\code{\link[=xbrl_ratios]{xbrl_ratios()}},
 \code{\link[=xbrl_resolve]{xbrl_resolve()}},
+\code{\link[=xbrl_robustness]{xbrl_robustness()}},
 \code{\link[=xbrl_screen]{xbrl_screen()}},
 \code{\link[=xbrl_standardise]{xbrl_standardise()}}
 }
