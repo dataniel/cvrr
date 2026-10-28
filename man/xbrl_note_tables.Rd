@@ -79,6 +79,7 @@ Other taxonomy:
 \code{\link[=xbrl_movements]{xbrl_movements()}},
 \code{\link[=xbrl_period]{xbrl_period()}},
 \code{\link[=xbrl_resolve]{xbrl_resolve()}},
-\code{\link[=xbrl_screen]{xbrl_screen()}}
+\code{\link[=xbrl_screen]{xbrl_screen()}},
+\code{\link[=xbrl_standardise]{xbrl_standardise()}}
 }
 \concept{taxonomy}

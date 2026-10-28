@@ -81,8 +81,12 @@ check_continuity <- function(x, by = "cvr", filing = "year", tol = 1,
   # period it covers. Both are figures a company states twice, so both are
   # compared: the comparative column of one filing against the primary column
   # of the one before it.
-  d$..when <- if (!"startdate" %in% names(d)) d$instant else
-    ifelse(is.na(d$instant), paste(d$startdate, d$enddate), d$instant)
+  # As text, both of them: ifelse() given a Date beside a string keeps the
+  # Date's day count and drops its class, so an instant came back as "19722"
+  # rather than "2023-12-31".
+  d$..when <- if (!"startdate" %in% names(d)) as.character(d$instant) else
+    ifelse(is.na(d$instant), paste(d$startdate, d$enddate),
+           as.character(d$instant))
   d <- d[!is.na(d$..when) & !grepl("NA", d$..when, fixed = TRUE), , drop = FALSE]
   if (nrow(d) == 0) return(tibble::as_tibble(data.frame()))
 
@@ -120,8 +124,11 @@ check_continuity <- function(x, by = "cvr", filing = "year", tol = 1,
   r$rel <- r$diff / pmax(abs(r$closing), 1)
   ratio <- abs(r$opening) / pmax(abs(r$closing), 1)
   # A power of a thousand, within a fifth: the figure was written in the other
-  # unit, not adjusted. Nothing else lands there.
-  scaled <- (abs(ratio - 1000) < 200) | (abs(ratio - 0.001) < 0.0002)
+  # unit, not adjusted. Nothing else lands there -- except a nil, which the
+  # floor of one made look like it: nought then a thousand is a ratio of a
+  # thousand, and a figure that is nought is in no unit at all.
+  scaled <- r$closing != 0 & r$opening != 0 &
+    ((abs(ratio - 1000) < 200) | (abs(ratio - 0.001) < 0.0002))
 
   r$verdict <- ifelse(abs(r$diff) <= tol, "agrees",
                ifelse(scaled, "scaled",

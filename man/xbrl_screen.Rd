@@ -8,7 +8,8 @@ xbrl_screen(
   x,
   basis = c("parent", "consolidated"),
   what = c("balance", "income", "cashflow", "continuity"),
-  materiality = 0.01
+  materiality = 0.01,
+  standardise = TRUE
 )
 }
 \arguments{
@@ -24,6 +25,10 @@ group's cash flow statement is usually only consolidated.}
 
 \item{materiality}{Share of total assets under which a finding moves down a
 level. Default \code{0.01}.}
+
+\item{standardise}{Put figures tagged in the wrong unit back in the right
+one before screening, with \code{\link[=xbrl_standardise]{xbrl_standardise()}}. Default \code{TRUE}. See the
+section below.}
 }
 \value{
 A tibble with one row per finding, most severe and largest first:
@@ -55,11 +60,24 @@ signs explains (\code{\link[=check_cascade]{check_cascade()}}).
 forward, or closes on a cash figure the balance sheet does not carry; or
 it reports borrowing the balance sheet does not owe, the pattern of a
 grant booked as a loan (\code{\link[=check_cashflow]{check_cashflow()}}).
-\item \code{"between filings"} -- a figure that does not reopen in the next filing:
-written in the other unit, or a balance that reopened on a different
-amount (\code{\link[=check_continuity]{check_continuity()}}). Income statement comparatives are left
-out of the second, because they are reclassified routinely.
+\item \code{"between filings"} -- a balance that reopened on a different amount in
+the next filing (\code{\link[=check_continuity]{check_continuity()}}). Income statement comparatives are
+left out, because they are reclassified routinely. With
+\code{standardise = FALSE}, also a figure written in the other unit.
 }
+}
+
+\section{The tagging first, the accounts second}{
+
+A figure tagged in thousands where the filing is in kroner is a fact about
+the tagging, not about the company. Screened as it stands it outranks every
+real finding: in a 4,304-filing corpus, 41 of the 54 serious findings were
+that, and once the figures are standardised the 13 left are all cash flow
+statements that do not add up. So by default the figures are standardised first, and the screen
+looks at the accounts as they were meant. What was corrected, and what
+could not be settled, is kept apart in \code{attr(s, "technical")} and named in
+one line when the screen prints. \code{standardise = FALSE} screens the figures
+as tagged, and then a figure in the other unit is a finding of its own.
 }
 
 \section{How it ranks}{
@@ -69,9 +87,9 @@ By how much a finding would change what a reader takes from the accounts.
 combines the kind of finding with its size:
 \itemize{
 \item \code{"high"} -- the statements do not hold together: a balance sheet whose
-sides differ, a cash flow statement that does not add up, a figure off
-by a factor of a thousand, or borrowing the balance sheet does not owe
-with its other half found elsewhere in the statement.
+sides differ, a cash flow statement that does not add up, or borrowing
+the balance sheet does not owe with its other half found elsewhere in the
+statement. Unstandardised, also a figure off by a factor of a thousand.
 \item \code{"medium"} -- something is unexplained but the statements still close:
 borrowing without debt to match, an income statement step no signs
 explain, a line stated with two amounts.
@@ -131,6 +149,7 @@ Other taxonomy:
 \code{\link[=xbrl_movements]{xbrl_movements()}},
 \code{\link[=xbrl_note_tables]{xbrl_note_tables()}},
 \code{\link[=xbrl_period]{xbrl_period()}},
-\code{\link[=xbrl_resolve]{xbrl_resolve()}}
+\code{\link[=xbrl_resolve]{xbrl_resolve()}},
+\code{\link[=xbrl_standardise]{xbrl_standardise()}}
 }
 \concept{taxonomy}

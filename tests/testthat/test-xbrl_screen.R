@@ -94,9 +94,16 @@ test_that("a figure in the other unit between filings is found", {
   b$value[b$elementid == "Assets"] <- 3
   b <- rbind(b, filing(bs("Assets", 3100, "2024-12-31"), file = "b.xml"))
   b$period_start <- as.Date("2024-01-01"); b$period_end <- as.Date("2024-12-31")
-  s <- suppressMessages(xbrl_screen(rbind(a, b), what = "continuity"))
+  # As tagged, it is a finding.
+  s <- suppressMessages(xbrl_screen(rbind(a, b), what = "continuity",
+                                    standardise = FALSE))
   expect_true("written in the other unit" %in% s$finding)
   expect_equal(unique(s$file[s$finding == "written in the other unit"]), "b.xml")
+
+  # Standardised first, it is a technicality: not a finding, but listed.
+  s <- suppressMessages(xbrl_screen(rbind(a, b), what = "continuity"))
+  expect_false("written in the other unit" %in% s$finding)
+  expect_true(nrow(attr(s, "technical")) >= 1)
 })
 
 test_that("print gives one line per filing, its worst finding first", {

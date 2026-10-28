@@ -356,11 +356,26 @@ s[c("cvr", "name", "period_end", "check", "finding", "share", "severity")]
 
 `share` is the amount against the filing's total assets, and a finding under
 1% of them moves down a level, so the list is ordered by what matters
-rather than by kroner. Over the 4,304 filings of 2020-2024, 532 have a
-finding and 54 a serious one. In 41 of those 54 it is a figure written in
-kroner one year and in thousands the next. That is a tagging error a single filing cannot
-show, because everything inside it is consistent. It shows only when the
-filing is set beside the one before it, so pass several years.
+rather than by kroner.
+
+The tagging is put right first. A filing now and then tags a line in
+thousands where it is in kroner, most often in its comparative column, and
+screened as it stands that outranks every real finding. Over the 4,304
+filings of 2020-2024 it was 41 of the 54 serious findings. `xbrl_screen()`
+therefore runs `xbrl_standardise()` before it looks. A comparative is
+corrected where the filing disagrees with itself: its own year and the
+earlier filing agree, and the comparative is a thousand off. Everything
+else is left as tagged and listed in `attr(s, "technical")`, apart from the
+findings:
+
+```{r}
+attr(s, "technical")             # 147 corrected, 49 undecided
+```
+
+What is left is the accounts. 494 filings have a finding, and the 13 serious
+ones are all cash flow statements that do not add up. A unit error shows
+only when a filing is set beside the one before it, because everything
+inside a single filing is consistent, so pass several years.
 
 ### The cash flow statement, against the rest
 

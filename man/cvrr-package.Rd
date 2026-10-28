@@ -111,7 +111,8 @@ and \code{\link[=xbrl_movements]{xbrl_movements()}} for one table at a time
 \link{cvrr_taxonomy_tables}
 \item \strong{Derive:} \code{\link[=xbrl_fill]{xbrl_fill()}} and \code{\link[=xbrl_resolve]{xbrl_resolve()}}, which \code{\link[=xbrl_lines]{xbrl_lines()}}
 uses and which can be run on their own
-\item \strong{Screen:} \code{\link[=xbrl_screen]{xbrl_screen()}} -- every check at once, the findings ranked
+\item \strong{Screen:} \code{\link[=xbrl_screen]{xbrl_screen()}} -- every check at once, the findings ranked,
+after \code{\link[=xbrl_standardise]{xbrl_standardise()}} has put the tagging right
 \item \strong{Reconcile:} \code{\link[=check_statement]{check_statement()}}, \code{\link[=check_breakdown]{check_breakdown()}},
 \code{\link[=check_cascade]{check_cascade()}}, \code{\link[=check_cashflow]{check_cashflow()}}, \code{\link[=check_movement]{check_movement()}},
 \code{\link[=check_continuity]{check_continuity()}},

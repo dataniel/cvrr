@@ -18,10 +18,21 @@
 #'   forward, or closes on a cash figure the balance sheet does not carry; or
 #'   it reports borrowing the balance sheet does not owe, the pattern of a
 #'   grant booked as a loan ([check_cashflow()]).
-#' * `"between filings"` -- a figure that does not reopen in the next filing:
-#'   written in the other unit, or a balance that reopened on a different
-#'   amount ([check_continuity()]). Income statement comparatives are left
-#'   out of the second, because they are reclassified routinely.
+#' * `"between filings"` -- a balance that reopened on a different amount in
+#'   the next filing ([check_continuity()]). Income statement comparatives are
+#'   left out, because they are reclassified routinely. With
+#'   `standardise = FALSE`, also a figure written in the other unit.
+#'
+#' @section The tagging first, the accounts second:
+#' A figure tagged in thousands where the filing is in kroner is a fact about
+#' the tagging, not about the company. Screened as it stands it outranks every
+#' real finding: in a 4,304-filing corpus, 41 of the 54 serious findings were
+#' that, and once the figures are standardised the 13 left are all cash flow
+#' statements that do not add up. So by default the figures are standardised first, and the screen
+#' looks at the accounts as they were meant. What was corrected, and what
+#' could not be settled, is kept apart in `attr(s, "technical")` and named in
+#' one line when the screen prints. `standardise = FALSE` screens the figures
+#' as tagged, and then a figure in the other unit is a finding of its own.
 #'
 #' @section How it ranks:
 #' By how much a finding would change what a reader takes from the accounts.
@@ -29,9 +40,9 @@
 #' combines the kind of finding with its size:
 #'
 #' * `"high"` -- the statements do not hold together: a balance sheet whose
-#'   sides differ, a cash flow statement that does not add up, a figure off
-#'   by a factor of a thousand, or borrowing the balance sheet does not owe
-#'   with its other half found elsewhere in the statement.
+#'   sides differ, a cash flow statement that does not add up, or borrowing
+#'   the balance sheet does not owe with its other half found elsewhere in the
+#'   statement. Unstandardised, also a figure off by a factor of a thousand.
 #' * `"medium"` -- something is unexplained but the statements still close:
 #'   borrowing without debt to match, an income statement step no signs
 #'   explain, a line stated with two amounts.
@@ -63,6 +74,9 @@
 #'   `"cashflow"` and `"continuity"`. All of them by default.
 #' @param materiality Share of total assets under which a finding moves down a
 #'   level. Default `0.01`.
+#' @param standardise Put figures tagged in the wrong unit back in the right
+#'   one before screening, with [xbrl_standardise()]. Default `TRUE`. See the
+#'   section below.
 #'
 #' @return A tibble with one row per finding, most severe and largest first:
 #'   the key (`cvr`, `name`, `period_start`, `period_end`), `basis`, `check`,
@@ -94,7 +108,7 @@
 #' @export
 xbrl_screen <- function(x, basis = c("parent", "consolidated"),
                         what = c("balance", "income", "cashflow", "continuity"),
-                        materiality = 0.01) {
+                        materiality = 0.01, standardise = TRUE) {
   basis <- match.arg(basis, several.ok = TRUE)
   what <- match.arg(what, several.ok = TRUE)
   need <- c("file", "cvr", "elementid", "value", "period", "period_end", "basis")
@@ -106,6 +120,16 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
 
   n <- length(unique(x$file))
   cli::cli_alert_info("Screening {n} filing{?s}.")
+
+  # The tagging first, the accounts second. A figure in the wrong unit is a
+  # technicality, and screened as it stands it outranks every real finding:
+  # 41 of the 54 serious findings in a 4,304-filing corpus were that.
+  # Standardised first, the serious findings are 13, none of them the tagging.
+  technical <- NULL
+  if (isTRUE(standardise)) {
+    if (!"standardised" %in% names(x)) x <- xbrl_standardise(x)
+    technical <- attr(x, "standardisation")
+  }
   d <- x[x$basis %in% basis, , drop = FALSE]
   found <- list()
 
@@ -157,7 +181,7 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
 
   if ("continuity" %in% what && "instant" %in% names(d) &&
       any(duplicated(unique(d[c("cvr", "period_end")])$cvr))) {
-    found$cont <- .continuity_findings(d)
+    found$cont <- .continuity_findings(d, units = !isTRUE(standardise))
   }
 
   out <- data.table::rbindlist(found, fill = TRUE)
@@ -188,6 +212,7 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
       "{nrow(out)} finding{?s} in {hit} of {n} filing{?s}, {sum(out$severity == 'high')} high.")
   }
   attr(out, "screened") <- n
+  attr(out, "technical") <- technical
   class(out) <- c("cvrr_screen", class(out))
   out
 }
@@ -209,7 +234,10 @@ print.cvrr_screen <- function(x, n = 10, ...) {
   # cli::rule() rather than cli_rule(): a print method writes to stdout.
   cat(cli::rule(left = cli::style_bold("cvrr screen"), right = head), "\n",
       sep = "")
-  if (!length(files)) return(invisible(x))
+  if (!length(files)) {
+    .print_technical(attr(x, "technical"))
+    return(invisible(x))
+  }
   cat("  ", paste(sprintf("%s %s", format(n_sev, big.mark = ","), sev),
                   collapse = "  ·  "),
       cli::col_grey("  (filings, by their most serious finding)"), "\n\n",
@@ -240,7 +268,19 @@ print.cvrr_screen <- function(x, n = 10, ...) {
         "\n", sep = "")
   cat("  ", cli::col_grey("Every finding is a row: as.data.frame(x), or filter on severity."),
       "\n", sep = "")
+  .print_technical(attr(x, "technical"))
   invisible(x)
+}
+
+# The tagging, said once and apart from the findings.
+.print_technical <- function(t) {
+  if (is.null(t) || !nrow(t)) return(invisible(NULL))
+  fixed <- sum(t$action != "undecided")
+  open <- sum(t$action == "undecided")
+  cat("  ", cli::col_grey(sprintf(
+    "Before screening: %d figure%s put back in the right unit, %d left undecided -- attr(x, \"technical\")",
+    fixed, if (fixed == 1) "" else "s", open)), "\n", sep = "")
+  invisible(NULL)
 }
 
 # One row per finding, in the screen's own columns, from any check's rows.
@@ -260,7 +300,7 @@ print.cvrr_screen <- function(x, n = 10, ...) {
 # Between filings: a figure that does not reopen where it closed. Scaled is a
 # figure written in the other unit, and is always worth reading; a change is
 # a restatement, and the filing is flagged once, with how much of it moved.
-.continuity_findings <- function(d) {
+.continuity_findings <- function(d, units = TRUE) {
   keep <- d$is_line %in% TRUE & !is.na(d$value)
   cc <- suppressMessages(check_continuity(d[keep, , drop = FALSE], by = "cvr",
                                           filing = "period_end"))
@@ -274,7 +314,10 @@ print.cvrr_screen <- function(x, n = 10, ...) {
   cc$basis <- files$basis[i]
   cc <- cc[!is.na(cc$file), , drop = FALSE]
 
-  scaled <- cc[cc$verdict %in% "scaled", , drop = FALSE]
+  # After standardising, what is still in the other unit is a figure no third
+  # figure could settle. That is a question about the tagging, listed with the
+  # corrections, not a finding about the accounts.
+  scaled <- cc[cc$verdict %in% "scaled" & units, , drop = FALSE]
   scaled <- scaled[order(-abs(scaled$diff)), , drop = FALSE]
   scaled <- scaled[!duplicated(scaled$file), , drop = FALSE]
   f1 <- .finding(scaled, "between filings", "written in the other unit",

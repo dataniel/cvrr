@@ -72,13 +72,18 @@ s[s$severity == "high", ]
 
 The checks cover a balance sheet that does not balance, an income statement
 step no signs explain, a cash flow statement that does not add up or reports
-borrowing the balance sheet does not owe, and figures that do not reopen in
-the next year's filing: written in the other unit, or restated. Each finding
+borrowing the balance sheet does not owe, and balances that reopen on a
+different amount in the next year's filing. Each finding
 carries its amount and its share of total assets, so a rounding difference
-at a large company does not outrank a real gap at a small one. Over 4,304
-Danish and Greenlandic filings for 2020-2024, 532 have a finding and 54 a
-serious one. In 41 of those 54 the serious finding is a figure written in
-kroner one year and in thousands the next.
+at a large company does not outrank a real gap at a small one.
+
+The tagging is put right before the accounts are screened.
+`xbrl_standardise()` finds figures tagged in thousands where the filing is in
+kroner and puts them back, and it keeps the figure as tagged beside the
+corrected one. Without that step, 41 of the 54 serious findings over 4,304
+Danish and Greenlandic filings for 2020-2024 were such figures. With it, 147
+figures are corrected first, 494 filings have a finding, and the 13 serious
+ones are all cash flow statements that do not add up.
 
 A finding is a reason to read the report, not a conclusion about it.
 
@@ -211,6 +216,7 @@ In the order the route runs.
 | Function | Description |
 |----------|-------------|
 | `xbrl_screen()` | Every check over a pile of filings, findings ranked by how much they matter |
+| `xbrl_standardise()` | Put figures tagged in the wrong unit back in the right one, before screening |
 | `check_statement()` | Reconcile every subtotal against the lines below it |
 | `check_cascade()` | Reconcile an income statement step by step to the result for the year |
 | `check_cashflow()` | Reconcile a cash flow statement, and tie it to the balance sheet, the income statement and the fixed asset note |

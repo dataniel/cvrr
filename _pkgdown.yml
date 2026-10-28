@@ -51,6 +51,7 @@ reference:
   - title: Does it add up?
     contents:
       - xbrl_screen
+      - xbrl_standardise
       - check_statement
       - check_cascade
       - check_cashflow
