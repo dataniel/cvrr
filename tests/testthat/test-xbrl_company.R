@@ -291,3 +291,30 @@ test_that("ApS is not read as A/S", {
   expect_equal(cvrr:::.company_form("Grønlands Handel ApS"), "ApS")
   expect_equal(cvrr:::.company_form("Grønlands Handel A/S"), "A/S")
 })
+
+# The auditor's conclusion as one of four, whichever language it is in.
+test_that("the opinion is read as clean, qualified, adverse or none", {
+  k <- cvrr:::.opinion_kind(c("Konklusion", "Konklusion med forbehold",
+                              "Afkr\u00e6ftende konklusion", "Manglende konklusion",
+                              "Opinion", "Qualified opinion", NA))
+  expect_equal(k, c("clean", "qualified", "adverse", "disclaimer", "clean",
+                    "qualified", NA))
+})
+
+test_that("the auditor's involvement is one word per level of assurance", {
+  a <- cvrr:::.assurance(c("Revisionsp\u00e5tegning", "Erkl\u00e6ring om udvidet gennemgang",
+                           "Den uafh\u00e6ngige revisors erkl\u00e6ringer (review)",
+                           "Andre erkl\u00e6ringer uden sikkerhed", "Ingen bistand",
+                           "No audit assistance", NA))
+  expect_equal(a, c("audit", "extended review", "review", "compilation", "none",
+                    "none", NA))
+})
+
+# The auditor's paragraph is the evidence; the filing's own typed answer is
+# used only where there is none; silence is NA, not FALSE.
+test_that("going concern is TRUE, FALSE or unknown", {
+  expect_true(cvrr:::.going_concern("V\u00e6sentlig usikkerhed vedr\u00f8rende fortsat drift", NA))
+  expect_true(cvrr:::.going_concern(NA, "V\u00e6sentlig usikkerhed vedr. fortsat drift"))
+  expect_false(cvrr:::.going_concern(NA, "Ikke v\u00e6sentlig usikkerhed vedr. fortsat drift"))
+  expect_true(is.na(cvrr:::.going_concern(NA, NA)))
+})

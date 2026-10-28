@@ -375,8 +375,11 @@ findings:
 attr(s, "technical")    # 147 units and 17 signs corrected, 49 undecided
 ```
 
-What is left is the accounts. 494 filings have a finding, and the 13 serious
-ones are all cash flow statements that do not add up. A unit error shows
+What is left is the accounts and what the auditor said about them. 618
+filings have a finding. The serious ones are 81 auditor's opinions that are
+qualified, adverse or missing, and 13 cash flow statements that do not add
+up. Each row carries the filing's class, legal form, level of assurance and
+whether it belongs to a group, so a finding can be set beside its kind. A unit error shows
 only when a filing is set beside the one before it, because everything
 inside a single filing is consistent, so pass several years.
 

@@ -100,13 +100,25 @@
 #'   `period_end`.
 #' * **Where:** `street`, `postcode`, `city`, `country`,
 #'   `registered_office`.
-#' * **Size and class:** `reporting_class`, `class`, `class_c_elements`,
-#'   `employees`, `assets_not_owned`, `currency`.
+#' * **Size and class:** `reporting_class`, `class`, `micro`,
+#'   `class_c_elements`, `employees`, `assets_not_owned`, `currency`.
+#' * **Group:** `group_accounts` (the filing has consolidated figures) and
+#'   `in_group` (the company is part of a group: balances with group
+#'   enterprises, shares in them, a subsidiary's exemption under section 78a,
+#'   or a note on group accounts).
 #' * **The report:** `report_type`, `general_meeting`, `approved`,
 #'   `signature_place`, `submitter`, `submitter_cvr`, `xbrl_tool`,
 #'   `policies_unchanged`.
-#' * **The audit:** `auditor_assistance`, `audit_firm`, `audit_firm_cvr`,
-#'   `opinion`, `auditor_signed`, `audit_exempt`.
+#' * **The audit:** `auditor_assistance` as written and `assurance` as one of
+#'   `"audit"`, `"extended review"`, `"review"`, `"compilation"` or `"none"`;
+#'   `audit_firm`, `audit_firm_cvr`; `opinion` as written and `opinion_kind`
+#'   as `"clean"`, `"qualified"`, `"adverse"` or `"disclaimer"`;
+#'   `going_concern`, whether the auditor or the filing reports a material
+#'   uncertainty about the company continuing; `auditor_signed`,
+#'   `audit_exempt`.
+#'
+#' Branch of industry is not in a filing, only in the CVR register. Join it on
+#' `cvr` from a register extract of your own.
 #' * With `prose`: `activity`, `activity_source`, `development`,
 #'   `development_source`, `events_after`, `expected_development`,
 #'   `mortgages`, `contingent_liabilities`.
@@ -144,7 +156,7 @@ xbrl_company <- function(x, persons = FALSE, prose = TRUE) {
   # Narrow before splitting: add_taxonomy() returns a fact once per statement
   # it appears in, and none of those columns are read here.
   keep <- c("file", "cvr", "period_start", "period_end", "elementid", "fact",
-            "decimals", "enddate", "instant", "unit")
+            "decimals", "enddate", "instant", "unit", "basis", "value")
   d <- x[intersect(keep, names(x))]
   d <- d[!is.na(d$fact) & trimws(d$fact) != "", , drop = FALSE]
 
@@ -226,6 +238,15 @@ xbrl_company <- function(x, persons = FALSE, prose = TRUE) {
                                    "StatementsExtendedReview"),
                             paste0("TypeOfModifiedOpinionOnAuditedFinancial",
                                    "StatementsReview")),
+    # Whether the auditor drew attention to a material uncertainty about the
+    # company continuing as a going concern. The auditor's paragraph is the
+    # stronger evidence, and the filing's own typed answer is used where
+    # there is no paragraph. 57 filings of a 4,304-filing corpus carry the
+    # paragraph. NA where neither says anything, which is not the same as no.
+    going_concern     = .going_concern(
+      one("MaterialUncertaintyConcerningGoingConcernAudit",
+          "MaterialUncertaintyConcerningGoingConcernExtendedReview"),
+      one("TypeOfDisclosureRelatingToGoingConcern")),
     # Whether last year's figures were prepared the same way. A break in a
     # series is explained if the policy changed, and unexplained if it did not.
     policies_unchanged = .company_flag(
@@ -236,6 +257,23 @@ xbrl_company <- function(x, persons = FALSE, prose = TRUE) {
     assets_not_owned  = suppressWarnings(as.numeric(
       one("RecognisedButNotOwnedAssets"))),
     xbrl_tool         = one("ToolForPreparingTheXBRLInstanceDocument"))
+
+  # What kind of filing this is, in the terms a comparison needs: the same
+  # finding means different things for a micro company with no auditor and a
+  # group under audit.
+  out$micro <- !is.na(cls) & grepl("mikro|micro", cls, ignore.case = TRUE)
+  out$assurance <- .assurance(out$auditor_assistance)
+  out$opinion_kind <- .opinion_kind(out$opinion)
+  # Group accounts are what consolidated figures are; a filing with none of
+  # them is a single company's, whatever its group.
+  out$group_accounts <- "basis" %in% names(x) && any(x$basis %in% "consolidated")
+  # Part of a group: balances with group enterprises, shares in them, a
+  # subsidiary's exemption under section 78a, or a note on the group accounts
+  # the company is in or leaves out. Any one is enough.
+  grp <- x$elementid %in% .GROUP_ELEMENTS
+  if ("value" %in% names(x))
+    grp <- grp & (is.na(x$value) | x$value != 0)
+  out$in_group <- out$group_accounts || any(grp)
 
   if (isTRUE(prose)) {
     act <- one("DescriptionOfPrimaryActivitiesOfEntity")
@@ -398,7 +436,8 @@ xbrl_company <- function(x, persons = FALSE, prose = TRUE) {
 .COMPANY_GROUPS <- list(
   location = c("street", "postcode", "city", "country", "registered_office"),
   audit    = c("report_type", "general_meeting", "auditor_assistance",
-               "audit_firm", "audit_firm_cvr", "opinion", "auditor_signed",
+               "assurance", "audit_firm", "audit_firm_cvr", "opinion",
+               "opinion_kind", "going_concern", "auditor_signed",
                "audit_exempt", "submitter", "submitter_cvr", "approved",
                "signature_place", "xbrl_tool", "policies_unchanged",
                "currency", "auditor_name", "auditor_id", "auditor_description",
@@ -409,6 +448,52 @@ xbrl_company <- function(x, persons = FALSE, prose = TRUE) {
   checks   = c("income_reconciled", "balance_reconciled",
                "cashflow_reconciled", "cashflow_debt_backed",
                "movements_reconciled", "movements_cover"))
+
+# Elements whose presence says the company is part of a group.
+.GROUP_ELEMENTS <- c(
+  "LongtermInvestmentsInGroupEnterprises", "ShorttermReceivablesFromGroupEnterprises",
+  "LongtermReceivablesFromGroupEnterprises", "ShorttermPayablesToGroupEnterprises",
+  "LongtermPayablesToGroupEnterprises", "ShorttermTaxPayablesToGroupEnterprises",
+  "IncomeFromInvestmentsInGroupEnterprises", "InterestIncomeFromGroupEnterprises",
+  "InterestExpenseAssignedToGroupEnterprises", "InformationOnConsolidatedFinancialStatements",
+  "InformationOnOmissionOfConsolidatedFinancialStatement",
+  paste0("TheCompanyHasPresentedTheAnnualReportEtcWithReferenceToTheDanish",
+         "FinancialStatementsAct78aConcerningTheExceptionForReportingClassC",
+         "MediumsizeSubsidiariesWhichChoosesToPresentTheAnnualReportEtc",
+         "AccordingToReportingClassB"))
+
+# The auditor's involvement, one word for each level of assurance, whichever
+# language the filing wrote it in.
+.assurance <- function(assistance) {
+  a <- tolower(trimws(assistance))
+  ifelse(is.na(a), NA_character_,
+  ifelse(grepl("udvidet|extended", a), "extended review",
+  ifelse(grepl("review", a), "review",
+  ifelse(grepl("revisionsp|audited", a), "audit",
+  ifelse(grepl("ingen|no audit", a), "none",
+  ifelse(grepl("uden sikkerhed|non-assurance", a), "compilation", "other"))))))
+}
+
+# TRUE where the auditor's report carries a material uncertainty paragraph,
+# or the filing types its going concern disclosure as one; FALSE where it
+# types it as not material; NA where nothing is said.
+.going_concern <- function(paragraph, typed) {
+  if (!is.na(paragraph) && nzchar(trimws(paragraph))) return(TRUE)
+  if (is.na(typed)) return(NA)
+  if (grepl("^ikke", trimws(typed), ignore.case = TRUE) ||
+      grepl("^no ", trimws(typed), ignore.case = TRUE)) return(FALSE)
+  grepl("usikkerhed|uncertainty", typed, ignore.case = TRUE)
+}
+
+# The auditor's conclusion, read off the Danish or the English wording, as
+# one of four: clean, qualified, adverse, or no conclusion at all.
+.opinion_kind <- function(opinion) {
+  o <- tolower(trimws(opinion))
+  ifelse(is.na(o), NA_character_,
+  ifelse(grepl("afkr.ftende|adverse", o), "adverse",
+  ifelse(grepl("manglende|disclaimer", o), "disclaimer",
+  ifelse(grepl("forbehold|qualified", o), "qualified", "clean"))))
+}
 
 # One of those tables: the key, the group's own columns, and the file last.
 # `intersect()` throughout, because `persons` and `prose` decide whether some

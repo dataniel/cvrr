@@ -10,6 +10,11 @@
 #' Each finding comes from a check that can be run on its own, and `check`
 #' names it:
 #'
+#' * `"auditor"` -- the auditor qualified the opinion, gave an adverse one or
+#'   none at all, or drew attention to a material uncertainty about the
+#'   company continuing as a going concern ([xbrl_company()]). The first three
+#'   are an auditor saying the accounts are wrong or cannot be judged, and
+#'   rank with the arithmetic; the last is a risk, not an error.
 #' * `"balance sheet"` -- the debit side does not equal the credit side, or
 #'   one line is stated twice with two amounts ([check_statement()]).
 #' * `"income statement"` -- a step of the cascade that no assignment of
@@ -39,11 +44,13 @@
 #' `share` is the amount against the filing's total assets, and `severity`
 #' combines the kind of finding with its size:
 #'
-#' * `"high"` -- the statements do not hold together: a balance sheet whose
+#' * `"high"` -- an auditor's qualified, adverse or missing opinion, or the
+#'   statements do not hold together: a balance sheet whose
 #'   sides differ, a cash flow statement that does not add up, or borrowing
 #'   the balance sheet does not owe with its other half found elsewhere in the
 #'   statement. Unstandardised, also a figure off by a factor of a thousand.
-#' * `"medium"` -- something is unexplained but the statements still close:
+#' * `"medium"` -- a going concern uncertainty, or something is unexplained
+#'   but the statements still close:
 #'   borrowing without debt to match, an income statement step no signs
 #'   explain, a line stated with two amounts.
 #' * `"low"` -- a lead: a figure restated between filings.
@@ -60,8 +67,7 @@
 #' error, borrowing without debt can be a facility drawn and repaid within the
 #' year. The function says where to look.
 #'
-#' It does not look at the prose, the auditor's opinion or anything the
-#' filing did not tag. A misstatement that is consistent everywhere, scaled or
+#' It does not look at the prose or at anything the filing did not tag. A misstatement that is consistent everywhere, scaled or
 #' restated throughout, is invisible inside one filing and is found only
 #' between filings, so pass several years to see that kind.
 #'
@@ -70,8 +76,8 @@
 #'   filings.
 #' @param basis `"parent"` and `"consolidated"`, the default, screens both; a
 #'   group's cash flow statement is usually only consolidated.
-#' @param what Which checks to run: any of `"balance"`, `"income"`,
-#'   `"cashflow"` and `"continuity"`. All of them by default.
+#' @param what Which checks to run: any of `"auditor"`, `"balance"`,
+#'   `"income"`, `"cashflow"` and `"continuity"`. All of them by default.
 #' @param materiality Share of total assets under which a finding moves down a
 #'   level. Default `0.01`.
 #' @param standardise Put the tagging right before screening, with
@@ -82,7 +88,9 @@
 #'   the key (`cvr`, `name`, `period_start`, `period_end`), `basis`, `check`,
 #'   `finding`, `amount` (the gap in the reporting currency, where the check
 #'   gives one), `share` (`amount` against total assets), `severity`, `detail`
-#'   (what the check said, in its own words), and `file`. Filings with no
+#'   (what the check said, in its own words), the filing's background --
+#'   `class`, `form`, `assurance`, `in_group`, `group_accounts`, from
+#'   [xbrl_company()] -- and `file`. Filings with no
 #'   finding have no rows; `attr(s, "screened")` says how many were looked at.
 #'   It prints as one line per filing, its most serious finding first; the
 #'   rows underneath are an ordinary tibble.
@@ -107,7 +115,8 @@
 #' @importFrom tibble as_tibble
 #' @export
 xbrl_screen <- function(x, basis = c("parent", "consolidated"),
-                        what = c("balance", "income", "cashflow", "continuity"),
+                        what = c("auditor", "balance", "income", "cashflow",
+                                 "continuity"),
                         materiality = 0.01, standardise = TRUE) {
   basis <- match.arg(basis, several.ok = TRUE)
   what <- match.arg(what, several.ok = TRUE)
@@ -132,6 +141,22 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
   }
   d <- x[x$basis %in% basis, , drop = FALSE]
   found <- list()
+
+  # Who each filing is, for the auditor's findings and for the background
+  # every finding carries: what is unusual for an audited group is ordinary
+  # for a micro company nobody audits.
+  comp <- suppressMessages(xbrl_company(x, prose = FALSE))
+  if ("auditor" %in% what && nrow(comp)) {
+    op <- comp[comp$opinion_kind %in% c("qualified", "adverse", "disclaimer"), ]
+    found$opinion <- .finding(op, "auditor",
+      c(qualified = "qualified opinion", adverse = "adverse opinion",
+        disclaimer = "no opinion")[op$opinion_kind],
+      NA_real_, "high", op$opinion)
+    gc <- comp[comp$going_concern %in% TRUE, ]
+    found$going <- .finding(gc, "auditor", "going concern uncertainty",
+                            NA_real_, "medium",
+                            "material uncertainty about the company continuing")
+  }
 
   if ("balance" %in% what) {
     st <- suppressMessages(check_statement(
@@ -206,6 +231,11 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
     out$period_end <- key$period_end[i]
     nm <- .filing_names(x)
     out$name <- unname(nm[out$file])
+    # The background, from the company row: for filtering and for comparing
+    # like with like.
+    j <- match(out$file, comp$file)
+    for (col in c("class", "form", "assurance", "in_group", "group_accounts"))
+      out[[col]] <- if (col %in% names(comp)) comp[[col]][j] else NA
     out <- .key_first(tibble::as_tibble(out))
     hit <- length(unique(out$file))
     cli::cli_alert_success(

@@ -28,13 +28,27 @@ about itself. A field it does not state is \code{NA}.
 \code{period_end}.
 \item \strong{Where:} \code{street}, \code{postcode}, \code{city}, \code{country},
 \code{registered_office}.
-\item \strong{Size and class:} \code{reporting_class}, \code{class}, \code{class_c_elements},
-\code{employees}, \code{assets_not_owned}, \code{currency}.
+\item \strong{Size and class:} \code{reporting_class}, \code{class}, \code{micro},
+\code{class_c_elements}, \code{employees}, \code{assets_not_owned}, \code{currency}.
+\item \strong{Group:} \code{group_accounts} (the filing has consolidated figures) and
+\code{in_group} (the company is part of a group: balances with group
+enterprises, shares in them, a subsidiary's exemption under section 78a,
+or a note on group accounts).
 \item \strong{The report:} \code{report_type}, \code{general_meeting}, \code{approved},
 \code{signature_place}, \code{submitter}, \code{submitter_cvr}, \code{xbrl_tool},
 \code{policies_unchanged}.
-\item \strong{The audit:} \code{auditor_assistance}, \code{audit_firm}, \code{audit_firm_cvr},
-\code{opinion}, \code{auditor_signed}, \code{audit_exempt}.
+\item \strong{The audit:} \code{auditor_assistance} as written and \code{assurance} as one of
+\code{"audit"}, \code{"extended review"}, \code{"review"}, \code{"compilation"} or \code{"none"};
+\code{audit_firm}, \code{audit_firm_cvr}; \code{opinion} as written and \code{opinion_kind}
+as \code{"clean"}, \code{"qualified"}, \code{"adverse"} or \code{"disclaimer"};
+\code{going_concern}, whether the auditor or the filing reports a material
+uncertainty about the company continuing; \code{auditor_signed},
+\code{audit_exempt}.
+}
+
+Branch of industry is not in a filing, only in the CVR register. Join it on
+\code{cvr} from a register extract of your own.
+\itemize{
 \item With \code{prose}: \code{activity}, \code{activity_source}, \code{development},
 \code{development_source}, \code{events_after}, \code{expected_development},
 \code{mortgages}, \code{contingent_liabilities}.

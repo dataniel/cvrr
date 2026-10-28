@@ -70,7 +70,8 @@ s <- xbrl_screen(x)
 s[s$severity == "high", ]
 ```
 
-The checks cover a balance sheet that does not balance, an income statement
+The checks cover an auditor's qualified, adverse or missing opinion and a
+going concern uncertainty, a balance sheet that does not balance, an income statement
 step no signs explain, a cash flow statement that does not add up or reports
 borrowing the balance sheet does not owe, and balances that reopen on a
 different amount in the next year's filing. Each finding
@@ -84,8 +85,12 @@ activity adds up only that way. A sign the activity adds up with is left
 alone, because then it means something. It keeps the figure as tagged beside
 the corrected one. Without that step, 41 of the 54 serious findings over 4,304
 Danish and Greenlandic filings for 2020-2024 were such figures. With it, 147
-figures and 17 signs are corrected first, 494 filings have a finding, and the 13 serious
-ones are all cash flow statements that do not add up.
+figures and 17 signs are corrected first. Then 618 filings have a finding and
+93 a serious one. The serious findings are 81 auditor's opinions that are
+qualified, adverse or missing, and 13 cash flow statements that do not add up.
+Each finding carries the filing's background (accounting class, legal form,
+level of assurance, part of a group or not), so like can be compared with
+like.
 
 A finding is a reason to read the report, not a conclusion about it.
 

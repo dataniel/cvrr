@@ -7,7 +7,7 @@
 xbrl_screen(
   x,
   basis = c("parent", "consolidated"),
-  what = c("balance", "income", "cashflow", "continuity"),
+  what = c("auditor", "balance", "income", "cashflow", "continuity"),
   materiality = 0.01,
   standardise = TRUE
 )
@@ -20,8 +20,8 @@ filings.}
 \item{basis}{\code{"parent"} and \code{"consolidated"}, the default, screens both; a
 group's cash flow statement is usually only consolidated.}
 
-\item{what}{Which checks to run: any of \code{"balance"}, \code{"income"},
-\code{"cashflow"} and \code{"continuity"}. All of them by default.}
+\item{what}{Which checks to run: any of \code{"auditor"}, \code{"balance"},
+\code{"income"}, \code{"cashflow"} and \code{"continuity"}. All of them by default.}
 
 \item{materiality}{Share of total assets under which a finding moves down a
 level. Default \code{0.01}.}
@@ -35,7 +35,9 @@ A tibble with one row per finding, most severe and largest first:
 the key (\code{cvr}, \code{name}, \code{period_start}, \code{period_end}), \code{basis}, \code{check},
 \code{finding}, \code{amount} (the gap in the reporting currency, where the check
 gives one), \code{share} (\code{amount} against total assets), \code{severity}, \code{detail}
-(what the check said, in its own words), and \code{file}. Filings with no
+(what the check said, in its own words), the filing's background --
+\code{class}, \code{form}, \code{assurance}, \code{in_group}, \code{group_accounts}, from
+\code{\link[=xbrl_company]{xbrl_company()}} -- and \code{file}. Filings with no
 finding have no rows; \code{attr(s, "screened")} says how many were looked at.
 It prints as one line per filing, its most serious finding first; the
 rows underneath are an ordinary tibble.
@@ -52,6 +54,11 @@ much does it matter?
 Each finding comes from a check that can be run on its own, and \code{check}
 names it:
 \itemize{
+\item \code{"auditor"} -- the auditor qualified the opinion, gave an adverse one or
+none at all, or drew attention to a material uncertainty about the
+company continuing as a going concern (\code{\link[=xbrl_company]{xbrl_company()}}). The first three
+are an auditor saying the accounts are wrong or cannot be judged, and
+rank with the arithmetic; the last is a risk, not an error.
 \item \code{"balance sheet"} -- the debit side does not equal the credit side, or
 one line is stated twice with two amounts (\code{\link[=check_statement]{check_statement()}}).
 \item \code{"income statement"} -- a step of the cascade that no assignment of
@@ -86,11 +93,13 @@ By how much a finding would change what a reader takes from the accounts.
 \code{share} is the amount against the filing's total assets, and \code{severity}
 combines the kind of finding with its size:
 \itemize{
-\item \code{"high"} -- the statements do not hold together: a balance sheet whose
+\item \code{"high"} -- an auditor's qualified, adverse or missing opinion, or the
+statements do not hold together: a balance sheet whose
 sides differ, a cash flow statement that does not add up, or borrowing
 the balance sheet does not owe with its other half found elsewhere in the
 statement. Unstandardised, also a figure off by a factor of a thousand.
-\item \code{"medium"} -- something is unexplained but the statements still close:
+\item \code{"medium"} -- a going concern uncertainty, or something is unexplained
+but the statements still close:
 borrowing without debt to match, an income statement step no signs
 explain, a line stated with two amounts.
 \item \code{"low"} -- a lead: a figure restated between filings.
@@ -110,8 +119,7 @@ cannot tell them apart: a restatement can be a correction of policy or of an
 error, borrowing without debt can be a facility drawn and repaid within the
 year. The function says where to look.
 
-It does not look at the prose, the auditor's opinion or anything the
-filing did not tag. A misstatement that is consistent everywhere, scaled or
+It does not look at the prose or at anything the filing did not tag. A misstatement that is consistent everywhere, scaled or
 restated throughout, is invisible inside one filing and is found only
 between filings, so pass several years to see that kind.
 }

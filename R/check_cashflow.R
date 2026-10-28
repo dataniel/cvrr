@@ -388,8 +388,15 @@ check_cashflow <- function(x, by = NULL, tol = 1, rel = 0.05) {
   }
   raised <- pick(.CF$raised_all, .CF$raised, TRUE)
   repaid <- pick(.CF$repaid_all, .CF$repaid, FALSE)
-  debt_end  <- vapply(.CF$debt, now, numeric(1))
-  debt_open <- vapply(.CF$debt, opening, numeric(1))
+  # The short-term part of long-term debt goes by two names; the second is
+  # used where the first is not reported, never beside it.
+  debt_at <- function(at) {
+    v <- vapply(.CF$debt, at, numeric(1))
+    if (is.na(v[2])) v[2] <- at("LongtermLiabilitiesOtherThanProvisionsDueInOneYear")
+    v
+  }
+  debt_end  <- debt_at(now)
+  debt_open <- debt_at(opening)
   if ((!is.na(raised) || !is.na(repaid)) && !is.na(debt_end[1]) &&
       !is.na(debt_open[1])) {
     # A missing short-term part is nil at both ends, not unknown: a filing with
