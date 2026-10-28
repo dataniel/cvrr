@@ -41,3 +41,13 @@ test_that("a date stated twice takes the first", {
 test_that("something that is not a filing is refused", {
   expect_error(xbrl_period(data.frame(a = 1)), "read_xbrl")
 })
+
+# A period date that is not a date is NA. It used to throw, and read_xbrl()
+# caught the error by dropping the whole filing.
+test_that("xbrl_period() reads a malformed date as NA rather than failing", {
+  x <- data.frame(elementid = c("ReportingPeriodStartDate", "ReportingPeriodEndDate"),
+                  fact = c("2023-01-01", "31.12.2023"))
+  p <- xbrl_period(x)
+  expect_equal(p$start, as.Date("2023-01-01"))
+  expect_true(is.na(p$end))
+})

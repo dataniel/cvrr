@@ -46,11 +46,15 @@ xbrl_period <- function(x) {
   if (!all(c("elementid", "fact") %in% names(x)))
     cli::cli_abort("{.arg x} must be a tibble from {.fn read_xbrl}.")
 
+  # The same reading as the context dates: the first ten characters, one
+  # format, NA if they are not a date. as.Date() with no format tried two
+  # formats per call, and on a string it could not read it threw -- which
+  # read_xbrl() caught by dropping the whole filing.
   one <- function(els) {
     v <- x$fact[x$elementid %in% els]
     v <- v[!is.na(v)]
     if (length(v) == 0) return(as.Date(NA))
-    suppressWarnings(as.Date(v[1]))
+    .as_date(v[1])
   }
   tibble::tibble(
     start      = one("ReportingPeriodStartDate"),

@@ -148,9 +148,10 @@ add_taxonomy <- function(x, taxonomy = NULL, dimensions = TRUE) {
   out <- tibble::as_tibble(data.table::rbindlist(out, fill = TRUE))
   if (nrow(out) == 0) return(out)
 
-  # The tail is not free either -- spreading the dimensions into columns is the
-  # slowest thing left -- so the summary comes after it, not before. A line
-  # that says "done" while a second of work remains is the whole complaint.
+  # The tail is not free either -- spreading the dimensions into columns
+  # touches every dimensioned fact -- so the summary comes after it, not
+  # before. A line that says "done" while a second of work remains is the
+  # whole complaint.
   if (!is.null(pb)) cli::cli_progress_step("Placing the facts")
 
   out <- .add_basis(out, .defaults_for(refs[1], taxonomy))
@@ -368,23 +369,52 @@ add_taxonomy <- function(x, taxonomy = NULL, dimensions = TRUE) {
 # a caller adds -- a taxonomy version, a source file -- is mistaken for a
 # dimension and silently checked as one.
 .spread_dimensions <- function(x) {
-  dims <- unique(unlist(strsplit(stats::na.omit(x$dimensions), ";")))
-  for (d in dims) {
+  long <- .dimension_pairs(x$dimensions, x$explicit_member)
+  for (d in unique(long$dimension)) {
     nm <- paste0("dim_", sub("Dimension$", "", sub("^[^:]+:", "", d)))
     if (nm %in% names(x)) next
     x[[nm]] <- sub("Member$", "", sub("^[^:]+:", "",
-                    .dimension_member(x$dimensions, x$explicit_member, d)))
+                    .member_of(long, length(x$dimensions), d)))
   }
   x
 }
 
-# The member of one named dimension, matched to it by position.
-.dimension_member <- function(dims, members, want) {
-  vapply(seq_along(dims), function(i) {
-    if (is.na(dims[i])) return(NA_character_)
-    d <- strsplit(dims[i], ";")[[1]]
-    m <- strsplit(members[i], ";")[[1]]
-    j <- grep(want, d, fixed = TRUE)
-    if (length(j) == 0 || j[1] > length(m)) NA_character_ else m[j[1]]
-  }, character(1))
+# Every (fact, dimension, member) triple, split once. The dimensions and their
+# members are stored as parallel `;`-joined strings, and the member of a
+# dimension is the one in the same position. Splitting them again for every
+# fact and every dimension was 84% of add_taxonomy() and two minutes of a
+# corpus read.
+.dimension_pairs <- function(dims, members) {
+  has <- which(!is.na(dims))
+  if (length(has) == 0)
+    return(list(row = integer(), dimension = character(), member = character()))
+  d <- strsplit(dims[has], ";", fixed = TRUE)
+  m <- strsplit(members[has], ";", fixed = TRUE)
+  n_d <- lengths(d)
+  n_m <- lengths(m)
+  pos <- sequence(n_d)
+  owner <- rep(seq_along(has), n_d)
+  # The member at the same position, NA where a context lists fewer members
+  # than dimensions.
+  start <- c(0L, cumsum(n_m))[owner]
+  member <- unlist(m, use.names = FALSE)[start + pos]
+  member[pos > n_m[owner]] <- NA_character_
+  list(row = has[owner], dimension = unlist(d, use.names = FALSE),
+       member = member)
+}
+
+# The member of one named dimension for every fact, NA where the fact does not
+# carry it. A dimension is found by substring, and the first match in the
+# context's own order wins.
+.dimension_member <- function(dims, members, want)
+  .member_of(.dimension_pairs(dims, members), length(dims), want)
+
+# The same, from pairs already split: what .spread_dimensions() uses, so that
+# every dimension column is read from one split.
+.member_of <- function(long, n, want) {
+  out <- rep(NA_character_, n)
+  hit <- which(grepl(want, long$dimension, fixed = TRUE))
+  hit <- hit[!duplicated(long$row[hit])]
+  out[long$row[hit]] <- long$member[hit]
+  out
 }

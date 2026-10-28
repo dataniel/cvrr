@@ -490,3 +490,15 @@ test_that("each line's nearest reported ancestor skips the unreported ones", {
   expect_equal(cvrr:::.nearest_reported_parent(codes),
                c(NA, "400.00.020.010", "400.00.020", "400.00.020", NA))
 })
+
+# The dimensions and their members are parallel `;`-joined strings, and the
+# member of a dimension is the one in the same position. They are now split
+# once for the whole table rather than per fact and per dimension.
+test_that("a dimension's member is the one in the same position", {
+  dims <- c(NA, "fsa:A;fsa:B", "fsa:B", "fsa:A;fsa:B")
+  mems <- c(NA, "fsa:a1;fsa:b1", "fsa:b2", "fsa:a3")   # the last lists one member
+  expect_equal(cvrr:::.dimension_member(dims, mems, "fsa:B"),
+               c(NA, "fsa:b1", "fsa:b2", NA))
+  expect_equal(cvrr:::.dimension_member(dims, mems, "fsa:A"),
+               c(NA, "fsa:a1", NA, "fsa:a3"))
+})
