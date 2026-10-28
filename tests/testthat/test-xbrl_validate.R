@@ -77,6 +77,17 @@ test_that("a subset of whole filings keeps the work, cut to it", {
   expect_equal(unique(w$lines$parent$balance$file), "a.xml")
 })
 
+test_that("a subset's screen reports only its own corrections", {
+  v <- suppressMessages(xbrl_validate(two()))
+  log <- tibble::tibble(kind = "units", file = "b.xml", cvr = "22222222",
+                        elementid = "Equity", period = as.Date("2023-12-31"),
+                        value_tagged = 300000, value = 300,
+                        action = "corrected comparative", detail = "")
+  attr(v, "standardisation") <- log
+  a <- v[v$cvr == "11111111", ]
+  expect_equal(nrow(attr(suppressMessages(xbrl_screen(a)), "technical")), 0L)
+})
+
 test_that("a changed figure is not read from stale work", {
   v <- suppressMessages(xbrl_validate(two()))
   v$value[v$file == "a.xml" & v$elementid == "Equity"] <- 999

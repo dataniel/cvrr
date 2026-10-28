@@ -139,6 +139,9 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
   if (isTRUE(standardise)) {
     if (!"standardised" %in% names(x)) x <- xbrl_standardise(x)
     technical <- attr(x, "standardisation")
+    # A subset keeps the attribute of the whole; the log is about these filings.
+    if (!is.null(technical) && nrow(technical))
+      technical <- technical[technical$file %in% x$file, , drop = FALSE]
   }
   d <- x[x$basis %in% basis, , drop = FALSE]
   # Facts from xbrl_validate() carry the checks already run; read, not rerun.
