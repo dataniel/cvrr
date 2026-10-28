@@ -141,11 +141,16 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
   }
   d <- x[x$basis %in% basis, , drop = FALSE]
   found <- list()
+  # The checks' own output, kept for whoever goes on to build a panel of the
+  # same facts: xbrl_panel() reads its trust columns off them instead of
+  # running them again.
+  checks <- list()
 
   # Who each filing is, for the auditor's findings and for the background
   # every finding carries: what is unusual for an audited group is ordinary
   # for a micro company nobody audits.
   comp <- suppressMessages(xbrl_company(x, prose = FALSE))
+  checks$company <- comp
   if ("auditor" %in% what && nrow(comp)) {
     op <- comp[comp$opinion_kind %in% c("qualified", "adverse", "disclaimer"), ]
     found$opinion <- .finding(op, "auditor",
@@ -161,6 +166,7 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
   if ("balance" %in% what) {
     st <- suppressMessages(check_statement(
       d[d$statement %in% .BALANCE_STATEMENTS, , drop = FALSE]))
+    checks$statement <- st
     if (nrow(st)) {
       sides <- st[st$verdict %in% "sides differ", , drop = FALSE]
       found$sides <- .finding(sides, "balance sheet", "sides differ",
@@ -176,6 +182,7 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
 
   if ("income" %in% what) {
     cs <- suppressWarnings(suppressMessages(check_cascade(d)))
+    checks$cascade <- cs
     if (nrow(cs)) {
       bad <- cs[cs$status %in% c("unsolved", "unexplained"), , drop = FALSE]
       found$income <- .finding(bad, "income statement",
@@ -186,6 +193,7 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
 
   if ("cashflow" %in% what) {
     cf <- check_cashflow(d)
+    checks$cashflow <- cf
     if (nrow(cf)) {
       internal <- cf[cf$check %in% c("activities", "rollforward",
                                      "cash vs balance") &
@@ -243,6 +251,7 @@ xbrl_screen <- function(x, basis = c("parent", "consolidated"),
   }
   attr(out, "screened") <- n
   attr(out, "technical") <- technical
+  attr(out, "checks") <- checks
   class(out) <- c("cvrr_screen", class(out))
   out
 }

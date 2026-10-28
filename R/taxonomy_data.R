@@ -105,6 +105,19 @@ NULL
 # every other entry point of the same version.
 .packaged_structure <- function(ref) {
   if (is.na(ref)) return(NULL)
+  # Built once per entry point and session. The packaged tables do not
+  # change, and building the structure for every filing that declares the same
+  # entry point was a fifth of what reading a balance sheet cost.
+  hit <- .STRUCTURE_CACHE[[ref]]
+  if (!is.null(hit)) return(if (identical(hit, FALSE)) NULL else hit)
+  out <- .packaged_structure_build(ref)
+  assign(ref, if (is.null(out)) FALSE else out, envir = .STRUCTURE_CACHE)
+  out
+}
+
+.STRUCTURE_CACHE <- new.env(parent = emptyenv())
+
+.packaged_structure_build <- function(ref) {
   version <- sub("^.*/taxonomy/([^/]+)/.*$", "\\1", ref)
   entry <- basename(ref)
   if (identical(version, ref)) return(NULL)

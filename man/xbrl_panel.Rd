@@ -4,7 +4,7 @@
 \alias{xbrl_panel}
 \title{The filings as a panel: one row per company and year}
 \usage{
-xbrl_panel(x, basis = "parent", standardise = TRUE)
+xbrl_panel(x, basis = "parent", standardise = TRUE, .checks = NULL)
 }
 \arguments{
 \item{x}{A tibble from \code{\link[=read_xbrl]{read_xbrl()}}.}
@@ -14,6 +14,9 @@ group accounts has a row for each basis asked for.}
 
 \item{standardise}{Run \code{\link[=xbrl_standardise]{xbrl_standardise()}} first, if it has not been.
 Default \code{TRUE}.}
+
+\item{.checks}{Internal: the checks \code{\link[=xbrl_screen]{xbrl_screen()}} has already run on the
+same facts, as \code{attr(s, "checks")}, so they are not run twice.}
 }
 \value{
 A tibble of class \code{cvrr_panel}: the key (\code{cvr}, \code{name},

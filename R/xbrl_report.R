@@ -78,7 +78,8 @@ xbrl_report_data <- function(x, cvr = NULL, type = NULL, peers = NULL,
   sc <- suppressMessages(xbrl_screen(xs))
   # Both bases: a group's report is about the group, and its consolidated
   # figures are only there if they are asked for.
-  p <- suppressMessages(xbrl_panel(xs, basis = c("parent", "consolidated")))
+  p <- suppressMessages(xbrl_panel(xs, basis = c("parent", "consolidated"),
+                                   .checks = attr(sc, "checks")))
 
   # Ranked among peers where there are any: the companies themselves, and the
   # peers that are not them.

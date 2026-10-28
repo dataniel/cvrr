@@ -14,7 +14,26 @@
 # The balance sheet is a partition and reconciles when its two sides agree.
 # The income statement is a cascade and reconciles when no step is left
 # unexplained -- a step that is merely absent from the filing is not a failure.
-.reconciles <- function(x, statement, basis) {
+#
+# `checks` is the check's own output, already computed over every basis --
+# xbrl_screen() keeps it -- so that a caller who has screened the filings does
+# not pay for the same checks twice. It is the same check with the same
+# settings, filtered to the basis asked for.
+.reconciles <- function(x, statement, basis, checks = NULL) {
+  if (!is.null(checks)) {
+    # A check with nothing to check returns an empty frame without columns.
+    if (!nrow(checks) || !"basis" %in% names(checks))
+      return(stats::setNames(logical(), character()))
+    ch <- checks[checks$basis %in% basis, , drop = FALSE]
+    if (identical(statement, "balance")) {
+      ch <- ch[ch$label %in% "debit side vs credit side", , drop = FALSE]
+      if (nrow(ch) == 0) return(stats::setNames(logical(), character()))
+      return(.by_file(ch$verdict %in% "sides agree", ch$file))
+    }
+    if (nrow(ch) == 0) return(stats::setNames(logical(), character()))
+    return(.by_file(!ch$status %in% "unexplained", ch$file))
+  }
+
   want <- .statement_names(statement)
   d <- x[x$statement %in% want & x$basis %in% basis & !is.na(x$period) &
            !is.na(x$period_end) & x$period == x$period_end, , drop = FALSE]
@@ -46,11 +65,14 @@
 # Debt that grew by more than the cash raised is not a failure. A new lease
 # does that, and so does interest added to principal. Only the other direction
 # is: cash reported as borrowed with no debt in the balance sheet to match.
-.cashflow_verdicts <- function(x, basis) {
+.cashflow_verdicts <- function(x, basis, checks = NULL) {
   none <- stats::setNames(logical(), character())
-  d <- x[x$basis %in% basis, , drop = FALSE]
-  ch <- tryCatch(check_cashflow(d, by = c("file", "basis")),
-                 error = function(e) NULL)
+  if (!is.null(checks) && (!nrow(checks) || !"basis" %in% names(checks)))
+    return(list(reconciled = none, debt = none))
+  ch <- if (!is.null(checks)) checks[checks$basis %in% basis, , drop = FALSE] else {
+    d <- x[x$basis %in% basis, , drop = FALSE]
+    tryCatch(check_cashflow(d, by = c("file", "basis")), error = function(e) NULL)
+  }
   if (is.null(ch) || nrow(ch) == 0) return(list(reconciled = none, debt = none))
 
   internal <- ch$check %in% c("activities", "rollforward", "cash vs balance")

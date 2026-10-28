@@ -159,6 +159,10 @@ xbrl_company <- function(x, persons = FALSE, prose = TRUE) {
             "decimals", "enddate", "instant", "unit", "basis", "value")
   d <- x[intersect(keep, names(x))]
   d <- d[!is.na(d$fact) & trimws(d$fact) != "", , drop = FALSE]
+  # Once each. add_taxonomy() repeats a fact for every statement it is placed
+  # in, and with only these columns kept the copies are identical rows; every
+  # field below scanned all of them.
+  d <- d[!duplicated(data.table::as.data.table(d)), , drop = FALSE]
 
   # A plain data.frame for the split, and one row per filing built the same
   # way: 4,304 of them are 4,304 constructions, and tibble() checks and
@@ -178,8 +182,9 @@ xbrl_company <- function(x, persons = FALSE, prose = TRUE) {
 .company_one <- function(x, persons, prose) {
   end <- x$period_end[1]
 
-  one <- function(...) .company_fact(x, c(...), end)
-  all_of <- function(...) .company_fact(x, c(...), end, collapse = "; ")
+  idx <- split(seq_len(nrow(x)), x$elementid)
+  one <- function(...) .company_fact(x, c(...), end, idx = idx)
+  all_of <- function(...) .company_fact(x, c(...), end, collapse = "; ", idx = idx)
 
   # A street address is two elements, and either can be absent.
   street <- paste(stats::na.omit(
@@ -361,16 +366,23 @@ xbrl_company <- function(x, persons = FALSE, prose = TRUE) {
 #
 # `collapse` is for the fields that are genuinely several -- a board has more
 # than one member -- and joins them rather than silently taking the first.
-.company_fact <- function(x, els, end, collapse = NULL) {
-  h <- x[x$elementid %in% els & !is.na(x$fact) & trimws(x$fact) != "", ,
-         drop = FALSE]
-  if (nrow(h) == 0) return(NA_character_)
+.company_fact <- function(x, els, end, collapse = NULL, idx = NULL) {
+  # Rows by index, and the columns as vectors. Subsetting the filing as a data
+  # frame for each of some fifty fields was half of what reading a company
+  # cost. Sorted, so that the first answer is the first row, as it was.
+  i <- if (is.null(idx)) which(x$elementid %in% els)
+       else sort(unlist(idx[intersect(els, names(idx))], use.names = FALSE))
+  if (length(i)) {
+    f <- x$fact[i]
+    i <- i[!is.na(f) & trimws(f) != ""]
+  }
+  if (length(i) == 0) return(NA_character_)
 
   if (!is.na(end)) {
-    cur <- h[h$enddate %in% end | h$instant %in% end, , drop = FALSE]
-    if (nrow(cur) > 0) h <- cur
+    cur <- i[x$enddate[i] %in% end | x$instant[i] %in% end]
+    if (length(cur) > 0) i <- cur
   }
-  v <- trimws(h$fact)
+  v <- trimws(x$fact[i])
   # The same fact tagged against several contexts is one answer, not several.
   v <- unique(v)
   if (is.null(collapse)) v[1] else paste(v, collapse = collapse)

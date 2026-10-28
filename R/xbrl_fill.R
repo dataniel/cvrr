@@ -172,11 +172,14 @@ xbrl_fill <- function(x, taxonomy = NULL, statement = c("BalanceSheetAccountForm
   st <- st[!duplicated(st$code), , drop = FALSE]
   reported <- stats::setNames(g$value[!duplicated(g$code)], g$code[!duplicated(g$code)])
 
+  # Each code's children, looked up rather than searched for: the search ran
+  # over the whole structure for every code it was asked about, and it is
+  # asked about every code and again inside nearest(). split() keeps the
+  # structure's own order, so the children come back as they did.
+  kids_map <- split(st$code, sub("[.][^.]+$", "", st$code))
   kids_of <- function(cd) {
-    inside <- st$code[startsWith(st$code, paste0(cd, "."))]
-    if (length(inside) == 0) return(character())
-    n <- lengths(strsplit(cd, ".", fixed = TRUE)) + 1L
-    inside[lengths(strsplit(inside, ".", fixed = TRUE)) == n]
+    k <- kids_map[[cd]]
+    if (is.null(k)) character() else k
   }
   # The nearest reported lines beneath a code: a filer may report a figure and
   # leave its own parent empty, so descending only one level would miss it.
@@ -202,8 +205,7 @@ xbrl_fill <- function(x, taxonomy = NULL, statement = c("BalanceSheetAccountForm
     tpl
   }
 
-  parents <- st$code[vapply(st$code, function(cd)
-    length(kids_of(cd)) > 0, logical(1))]
+  parents <- st$code[st$code %in% names(kids_map)]
 
   for (cd in parents) {
     below <- nearest(cd)

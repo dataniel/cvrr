@@ -46,6 +46,8 @@
 #'   group accounts has a row for each basis asked for.
 #' @param standardise Run [xbrl_standardise()] first, if it has not been.
 #'   Default `TRUE`.
+#' @param .checks Internal: the checks [xbrl_screen()] has already run on the
+#'   same facts, as `attr(s, "checks")`, so they are not run twice.
 #'
 #' @return A tibble of class `cvrr_panel`: the key (`cvr`, `name`,
 #'   `period_start`, `period_end`), `basis`, the figures, the background
@@ -73,7 +75,7 @@
 #' @importFrom cli cli_abort cli_alert_info cli_alert_success
 #' @importFrom tibble as_tibble
 #' @export
-xbrl_panel <- function(x, basis = "parent", standardise = TRUE) {
+xbrl_panel <- function(x, basis = "parent", standardise = TRUE, .checks = NULL) {
   basis <- match.arg(basis, c("parent", "consolidated"), several.ok = TRUE)
   if (!"file" %in% names(x))
     cli::cli_abort(c("{.arg x} has no {.field file} column.",
@@ -87,8 +89,9 @@ xbrl_panel <- function(x, basis = "parent", standardise = TRUE) {
   out <- do.call(rbind, rows)
   if (is.null(out) || !nrow(out)) out <- .panel_skeleton()
 
-  # Who the company is: the same for every basis of a filing.
-  comp <- suppressMessages(xbrl_company(x, prose = FALSE))
+  # Who the company is: the same for every basis of a filing. Taken from the
+  # screen where it has been read already.
+  comp <- .checks$company %||% suppressMessages(xbrl_company(x, prose = FALSE))
   j <- match(out$file, comp$file)
   for (col in c("name", "class", "form", "micro", "founded", "assurance",
                 "opinion_kind", "going_concern", "in_group", "group_accounts",
@@ -101,9 +104,9 @@ xbrl_panel <- function(x, basis = "parent", standardise = TRUE) {
   out$cashflow_reconciled <- NA
   for (b in basis) {
     k <- out$basis == b
-    ok_b <- .reconciles(x, "balance", b)
-    ok_i <- .reconciles(x, "income", b)
-    ok_c <- .cashflow_verdicts(x, b)$reconciled
+    ok_b <- .reconciles(x, "balance", b, .checks$statement)
+    ok_i <- .reconciles(x, "income", b, .checks$cascade)
+    ok_c <- .cashflow_verdicts(x, b, .checks$cashflow)$reconciled
     out$balance_reconciled[k] <- unname(ok_b[out$file[k]])
     out$income_reconciled[k] <- unname(ok_i[out$file[k]])
     out$cashflow_reconciled[k] <- unname(ok_c[out$file[k]])
