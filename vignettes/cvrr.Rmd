@@ -364,12 +364,15 @@ screened as it stands that outranks every real finding. Over the 4,304
 filings of 2020-2024 it was 41 of the 54 serious findings. `xbrl_screen()`
 therefore runs `xbrl_standardise()` before it looks. A comparative is
 corrected where the filing disagrees with itself: its own year and the
-earlier filing agree, and the comparative is a thousand off. Everything
+earlier filing agree, and the comparative is a thousand off. A cash flow
+sign is reversed where its activity adds up only that way. A contrary sign
+the activity adds up with stays, because then it means something. Greenland
+Airports' sale of a company reported negative is one of those. Everything
 else is left as tagged and listed in `attr(s, "technical")`, apart from the
 findings:
 
 ```{r}
-attr(s, "technical")             # 147 corrected, 49 undecided
+attr(s, "technical")    # 147 units and 17 signs corrected, 49 undecided
 ```
 
 What is left is the accounts. 494 filings have a finding, and the 13 serious

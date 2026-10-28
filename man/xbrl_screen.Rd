@@ -26,9 +26,9 @@ group's cash flow statement is usually only consolidated.}
 \item{materiality}{Share of total assets under which a finding moves down a
 level. Default \code{0.01}.}
 
-\item{standardise}{Put figures tagged in the wrong unit back in the right
-one before screening, with \code{\link[=xbrl_standardise]{xbrl_standardise()}}. Default \code{TRUE}. See the
-section below.}
+\item{standardise}{Put the tagging right before screening, with
+\code{\link[=xbrl_standardise]{xbrl_standardise()}}: figures in the wrong unit, and cash flow signs an
+activity adds up only reversed. Default \code{TRUE}. See the section below.}
 }
 \value{
 A tibble with one row per finding, most severe and largest first:

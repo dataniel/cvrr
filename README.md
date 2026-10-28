@@ -79,10 +79,12 @@ at a large company does not outrank a real gap at a small one.
 
 The tagging is put right before the accounts are screened.
 `xbrl_standardise()` finds figures tagged in thousands where the filing is in
-kroner and puts them back, and it keeps the figure as tagged beside the
-corrected one. Without that step, 41 of the 54 serious findings over 4,304
+kroner and puts them back. It also reverses a cash flow sign where the
+activity adds up only that way. A sign the activity adds up with is left
+alone, because then it means something. It keeps the figure as tagged beside
+the corrected one. Without that step, 41 of the 54 serious findings over 4,304
 Danish and Greenlandic filings for 2020-2024 were such figures. With it, 147
-figures are corrected first, 494 filings have a finding, and the 13 serious
+figures and 17 signs are corrected first, 494 filings have a finding, and the 13 serious
 ones are all cash flow statements that do not add up.
 
 A finding is a reason to read the report, not a conclusion about it.
@@ -216,7 +218,7 @@ In the order the route runs.
 | Function | Description |
 |----------|-------------|
 | `xbrl_screen()` | Every check over a pile of filings, findings ranked by how much they matter |
-| `xbrl_standardise()` | Put figures tagged in the wrong unit back in the right one, before screening |
+| `xbrl_standardise()` | Put the tagging right before screening: figures in the wrong unit, cash flow signs the wrong way |
 | `check_statement()` | Reconcile every subtotal against the lines below it |
 | `check_cascade()` | Reconcile an income statement step by step to the result for the year |
 | `check_cashflow()` | Reconcile a cash flow statement, and tie it to the balance sheet, the income statement and the fixed asset note |

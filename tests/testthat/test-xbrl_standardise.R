@@ -60,3 +60,54 @@ test_that("one filing per company has nothing to compare", {
   expect_equal(out$value, x$value)
   expect_equal(nrow(attr(out, "standardisation")), 0L)
 })
+
+# ---- signs in the cash flow statement ---------------------------------------
+
+st <- cvrr:::.structure_for(REF, NULL)
+cf <- function(el, value) {
+  s <- st[st$statement == "CashFlowStatement" & st$elementid == el, ][1, ]
+  r <- fact(el, value, "2023-12-31", "a.xml", "2023-12-31")
+  r$statement <- "CashFlowStatement"; r$code <- s$code; r$balance <- s$balance
+  r$instant <- as.Date(NA)
+  r
+}
+# Investing of -900: purchases of 600 and 400 written as positive outflows,
+# a sale of 100 as an inflow. `sale` lets the sale be written the wrong way.
+investing <- function(sale = 100, total = -900, extra = NULL)
+  do.call(rbind, c(list(
+    cf("CashFlowsFromUsedInInvestingActivities", total),
+    cf("PurchaseOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities", 600),
+    cf("PurchaseOfIntangibleAssetsClassifiedAsInvestingActivities", 400),
+    cf("ProceedsFromSalesOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities", sale)),
+    extra))
+
+test_that("a sign the activity only adds up without is reversed", {
+  # The sale written as -100: the activity sums to -1,100, not -900.
+  x <- suppressMessages(xbrl_standardise(investing(sale = -100), what = "signs"))
+  i <- x$elementid == "ProceedsFromSalesOfPropertyPlantAndEquipmentClassifiedAsInvestingActivities"
+  expect_equal(x$value[i], 100)
+  expect_equal(x$value_tagged[i], -100)
+  expect_match(x$standardised[i], "investing adds up")
+  expect_equal(attr(x, "standardisation")$action, "flipped sign")
+})
+
+# Greenland Airports' case: a sale of a company reported negative, in an
+# investing activity that adds up with it. The sign means something; it is
+# the classification that is wrong, and that is for the screen to find.
+test_that("a contrary sign the activity adds up with is left alone", {
+  x <- investing(total = -1200,
+                 extra = list(cf("SaleOfOtherCompany", -300)))
+  out <- suppressMessages(xbrl_standardise(x, what = "signs"))
+  expect_equal(out$value, out$value_tagged)
+  expect_equal(nrow(attr(out, "standardisation")), 0L)
+})
+
+# Two sales of 100 each, and an activity stated at -1,000 against -800 as
+# tagged: reversing either sale would do, so neither is.
+test_that("a sign that any of several lines could explain is undecided", {
+  x <- investing(total = -1000, extra = list(
+    cf("ProceedsFromSalesOfIntangibleAssetsClassifiedAsInvestingActivities", 100)))
+  out <- suppressMessages(xbrl_standardise(x, what = "signs"))
+  expect_equal(out$value, out$value_tagged)
+  expect_equal(attr(out, "standardisation")$action, "undecided")
+})

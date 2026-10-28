@@ -1,4 +1,4 @@
-#' Put figures written in the wrong unit back in the right one
+#' Put the tagging right: figures in the wrong unit, signs the wrong way
 #'
 #' A filing tags each figure in kroner, and now and then a line is tagged in
 #' thousands instead -- most often in the comparative column, so that last
@@ -33,15 +33,38 @@
 #' moved, on every row that did; elsewhere they are the value and `NA`.
 #' Nothing else in the filing is touched.
 #'
-#' @param x A tibble from [read_xbrl()], with several years of at least some
-#'   companies. A company with one filing has nothing to compare and is
-#'   returned as it came.
+#' @section Signs in the cash flow statement:
+#' A line in investing or financing whose activity does not add up as
+#' tagged, and does add up with that one line reversed, has its sign reversed.
+#' The statement itself says which way the filer meant it. The same test is
+#' made one level up, of the three activities against the change in cash.
+#'
+#' What is not touched is as important. A line whose activity adds up as
+#' tagged keeps its sign, however its sign looks beside its element, because
+#' then the sign means something. A sale of a company reported negative in an
+#' investing activity that adds up with it -- Greenland Airports' grant taken
+#' to income, in its 2025 group accounts -- is a misclassification for the
+#' screen to find, not a sign to correct. Where several lines would each make
+#' the activity add up, none is reversed and the case is listed as undecided.
+#' Operating is left alone, because its lines are the income statement's own
+#' facts.
+#'
+#' @param x A tibble from [read_xbrl()]. For units, several years of at least
+#'   some companies. A company with one filing has no units to compare and
+#'   keeps its figures.
+#' @param what Which to standardise: `"units"`, `"signs"`, or both, the
+#'   default. Units go first, because a figure in the wrong unit would make a
+#'   statement fail to add up for a reason of its own.
+#' @param tol Absolute tolerance, in the reporting currency, for whether an
+#'   activity adds up. Default `1`.
 #'
 #' @return `x`, with `value` corrected where a figure was in the wrong unit
-#'   and the columns `value_tagged` and `standardised` added. Attribute
-#'   `"standardisation"` is a tibble with one row per figure looked at: the
-#'   company, the element, the date, the two filings, the figures and what was
-#'   done (`"corrected comparative"` or `"undecided"`).
+#'   or had its sign reversed, and the columns `value_tagged` and
+#'   `standardised` added. Attribute `"standardisation"` is a tibble with one
+#'   row per figure looked at: `kind` (`"unit"` or `"sign"`), the filing, the
+#'   company, the element, the date, the figure as tagged and as standardised,
+#'   `action` (`"corrected comparative"`, `"flipped sign"` or `"undecided"`)
+#'   and `detail`.
 #'
 #' @examples
 #' \dontrun{
@@ -58,7 +81,8 @@
 #' @importFrom cli cli_abort cli_alert_info cli_alert_success
 #' @importFrom tibble as_tibble
 #' @export
-xbrl_standardise <- function(x) {
+xbrl_standardise <- function(x, what = c("units", "signs"), tol = 1) {
+  what <- match.arg(what, several.ok = TRUE)
   need <- c("file", "cvr", "elementid", "value", "period", "period_end", "basis",
             "is_line", "instant")
   gone <- setdiff(need, names(x))
@@ -69,14 +93,41 @@ xbrl_standardise <- function(x) {
 
   if (!"value_tagged" %in% names(x)) x$value_tagged <- x$value
   if (!"standardised" %in% names(x)) x$standardised <- NA_character_
-  attr(x, "standardisation") <- .empty_standardisation()
 
+  logs <- list()
+  if ("units" %in% what) {
+    r <- .standardise_units(x)
+    x <- r$x
+    logs$units <- r$log
+  }
+  # Signs after units: a sign is judged by whether a statement adds up, and a
+  # figure in the wrong unit would make it fail for a reason of its own.
+  if ("signs" %in% what && all(c("statement", "code", "balance") %in% names(x))) {
+    r <- .standardise_signs(x, tol)
+    x <- r$x
+    logs$signs <- r$log
+  }
+  log <- tibble::as_tibble(data.table::rbindlist(
+    c(list(.empty_standardisation()), logs), fill = TRUE))
+  attr(x, "standardisation") <- log
+  if (nrow(log)) {
+    done <- log$action %in% c("corrected comparative", "flipped sign")
+    cli::cli_alert_success(
+      "{sum(done & log$kind == 'unit')} figure{?s} put back in the right unit, {sum(done & log$kind == 'sign')} sign{?s} reversed, {sum(!done)} left undecided.")
+  }
+  x
+}
+
+# ---- units ------------------------------------------------------------------
+
+.standardise_units <- function(x) {
+  none <- list(x = x, log = NULL)
   line <- x$is_line %in% TRUE & !is.na(x$value)
-  if (!any(duplicated(unique(x[line, c("cvr", "period_end")])$cvr))) return(x)
+  if (!any(duplicated(unique(x[line, c("cvr", "period_end")])$cvr))) return(none)
 
   cc <- check_continuity(x[line, , drop = FALSE], filing = "period_end")
   sc <- cc[cc$verdict %in% "scaled", , drop = FALSE]
-  if (!nrow(sc)) return(x)
+  if (!nrow(sc)) return(none)
 
   # The later filing's own figure for the line, in its own year: the third
   # figure that says which of the two disagreeing ones is the odd one out.
@@ -127,17 +178,109 @@ xbrl_standardise <- function(x) {
         format(f, big.mark = ",", scientific = FALSE))
     }
     log_rows[[i]] <- data.frame(
-      cvr = r$cvr, elementid = r$elementid, period = r$period,
-      closed_in = r$closed_in, opened_in = r$opened_in, closing = r$closing,
-      opening = r$opening, later_own = if (length(third)) third else NA_real_,
-      factor = f, action = action, stringsAsFactors = FALSE)
+      kind = "unit", file = later, cvr = r$cvr, elementid = r$elementid,
+      period = r$period, value_tagged = r$opening,
+      value = if (is.na(f)) r$opening else r$opening * f, action = action,
+      detail = sprintf("closed at %s in %s; this filing's own year %s",
+                       .std_num(r$closing), format(r$closed_in),
+                       if (length(third)) .std_num(third) else "not stated"),
+      stringsAsFactors = FALSE)
   }
-  log <- tibble::as_tibble(do.call(rbind, log_rows))
-  attr(x, "standardisation") <- log
-  fixed <- sum(log$action != "undecided")
-  cli::cli_alert_success(
-    "{fixed} figure{?s} put back in the right unit, {sum(log$action == 'undecided')} undecided.")
-  x
+  list(x = x, log = do.call(rbind, log_rows))
+}
+
+# ---- signs in the cash flow statement --------------------------------------
+
+# A line whose sign makes its activity fail to add up, where reversing it --
+# and only it -- makes the activity add up. That is a tagging error: the filer
+# wrote an outflow as an inflow or the reverse, and the statement itself says
+# which. A line whose activity adds up as tagged is left alone however its
+# sign looks beside its element, because then the sign means something: a
+# sale of a company reported negative, in an investing activity that adds up
+# with it, is a misclassification to find, not a sign to correct.
+#
+# The same test is then made one level up: the activities against the change
+# in cash, where exactly one activity reversed makes them agree.
+.standardise_signs <- function(x, tol) {
+  cfr <- which(x$statement %in% "CashFlowStatement" & x$is_line %in% TRUE &
+                 !is.na(x$value) & !is.na(x$period) & !is.na(x$period_end) &
+                 x$period == x$period_end & !x$abstract %in% TRUE &
+                 !is.na(x$code))
+  if (!length(cfr)) return(list(x = x, log = NULL))
+  grp <- split(cfr, paste(x$file[cfr], x$basis[cfr], sep = "\r"))
+  log <- list()
+
+  # Every copy of a fact: the same element, filing, basis and year, in every
+  # statement it is placed in, so the figure stays one figure.
+  flip <- function(x, file, basis, el, period_end, why) {
+    rows <- which(x$file == file & x$basis == basis & x$elementid == el &
+                    x$is_line %in% TRUE & !is.na(x$period) &
+                    x$period == period_end)
+    x$value[rows] <- -x$value[rows]
+    x$standardised[rows] <- ifelse(is.na(x$standardised[rows]), why,
+                                   paste(x$standardised[rows], why, sep = "; "))
+    x
+  }
+  note <- function(cf, el, action, detail)
+    data.frame(kind = "sign", file = cf$file[1], cvr = cf$cvr[1],
+               elementid = el, period = as.character(cf$period_end[1]),
+               value_tagged = cf$value[match(el, cf$elementid)],
+               value = if (action == "flipped sign")
+                 -cf$value[match(el, cf$elementid)] else cf$value[match(el, cf$elementid)],
+               action = action, detail = detail, stringsAsFactors = FALSE)
+
+  for (gi in grp) {
+    cf <- x[gi, , drop = FALSE]
+    cf <- cf[!duplicated(cf$elementid), , drop = FALSE]
+    sect <- .cf_section_of(cf)
+    out_pos <- .outflows_positive(cf, sect)
+
+    # Lines within investing and financing. Operating is left alone: its
+    # lines are the income statement's own facts, and reversing one would
+    # reverse it there too.
+    for (nm in c("investing", "financing")) {
+      i <- match(.CF$sections[[nm]], cf$elementid)
+      if (is.na(i)) next
+      kids <- which(cf$code %in% .nearest_children(cf, cf$code[i])$code)
+      if (!length(kids)) next
+      contrib <- .cf_direction(cf$value[kids], cf$balance[kids], out_pos)
+      res <- cf$value[i] - sum(contrib)
+      if (abs(res) <= tol) next
+      # Reversing line k moves the sum by twice its contribution.
+      fix <- which(abs(res + 2 * contrib) <= tol & contrib != 0)
+      if (length(fix) == 1) {
+        el <- cf$elementid[kids[fix]]
+        why <- sprintf("sign: reversed, %s adds up only that way", nm)
+        x <- flip(x, cf$file[1], cf$basis[1], el, cf$period_end[1], why)
+        log[[length(log) + 1L]] <- note(cf, el, "flipped sign", why)
+        cf$value[kids[fix]] <- -cf$value[kids[fix]]
+      } else if (length(fix) > 1) {
+        log[[length(log) + 1L]] <- note(cf, paste(cf$elementid[kids[fix]], collapse = ", "),
+          "undecided", sprintf("%s adds up with any one of %d lines reversed",
+                               nm, length(fix)))
+      }
+    }
+
+    # The activities against the change in cash.
+    sec_i <- match(.CF$sections, cf$elementid)
+    target <- cf$value[match(c(.CF$before_fx, .CF$change), cf$elementid)]
+    target <- target[!is.na(target)][1]
+    if (is.na(target) || sum(!is.na(sec_i)) < 2) next
+    v <- cf$value[sec_i[!is.na(sec_i)]]
+    res <- target - sum(v)
+    if (abs(res) <= tol) next
+    # The exchange rate adjustment explains it already: nothing to reverse.
+    fx <- cf$value[match(.CF$fx, cf$elementid)]
+    if (!is.na(fx) && abs(res - fx) <= tol) next
+    fix <- which(abs(res + 2 * v) <= tol & v != 0)
+    if (length(fix) == 1) {
+      el <- cf$elementid[sec_i[!is.na(sec_i)][fix]]
+      why <- "sign: reversed, the activities sum to the change in cash only that way"
+      x <- flip(x, cf$file[1], cf$basis[1], el, cf$period_end[1], why)
+      log[[length(log) + 1L]] <- note(cf, el, "flipped sign", why)
+    }
+  }
+  list(x = x, log = if (length(log)) do.call(rbind, log) else NULL)
 }
 
 # The rows of `x` dated as check_continuity() writes a period: an instant as
@@ -156,7 +299,9 @@ xbrl_standardise <- function(x) {
 .thousands <- function(ratio) 1000^round(log10(abs(ratio)) / 3)
 
 .empty_standardisation <- function()
-  tibble::tibble(cvr = character(), elementid = character(), period = character(),
-                 closed_in = as.Date(character()), opened_in = as.Date(character()),
-                 closing = numeric(), opening = numeric(), later_own = numeric(),
-                 factor = numeric(), action = character())
+  data.frame(kind = character(), file = character(), cvr = character(),
+             elementid = character(), period = character(),
+             value_tagged = numeric(), value = numeric(), action = character(),
+             detail = character(), stringsAsFactors = FALSE)
+
+.std_num <- function(v) format(round(v), big.mark = ",", scientific = FALSE, trim = TRUE)

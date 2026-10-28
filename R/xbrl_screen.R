@@ -74,9 +74,9 @@
 #'   `"cashflow"` and `"continuity"`. All of them by default.
 #' @param materiality Share of total assets under which a finding moves down a
 #'   level. Default `0.01`.
-#' @param standardise Put figures tagged in the wrong unit back in the right
-#'   one before screening, with [xbrl_standardise()]. Default `TRUE`. See the
-#'   section below.
+#' @param standardise Put the tagging right before screening, with
+#'   [xbrl_standardise()]: figures in the wrong unit, and cash flow signs an
+#'   activity adds up only reversed. Default `TRUE`. See the section below.
 #'
 #' @return A tibble with one row per finding, most severe and largest first:
 #'   the key (`cvr`, `name`, `period_start`, `period_end`), `basis`, `check`,
@@ -275,11 +275,13 @@ print.cvrr_screen <- function(x, n = 10, ...) {
 # The tagging, said once and apart from the findings.
 .print_technical <- function(t) {
   if (is.null(t) || !nrow(t)) return(invisible(NULL))
-  fixed <- sum(t$action != "undecided")
+  units <- sum(t$kind == "unit" & t$action != "undecided")
+  signs <- sum(t$kind == "sign" & t$action != "undecided")
   open <- sum(t$action == "undecided")
   cat("  ", cli::col_grey(sprintf(
-    "Before screening: %d figure%s put back in the right unit, %d left undecided -- attr(x, \"technical\")",
-    fixed, if (fixed == 1) "" else "s", open)), "\n", sep = "")
+    "Before screening: %d figure%s put back in the right unit, %d sign%s reversed, %d left undecided -- attr(x, \"technical\")",
+    units, if (units == 1) "" else "s", signs, if (signs == 1) "" else "s", open)),
+    "\n", sep = "")
   invisible(NULL)
 }
 

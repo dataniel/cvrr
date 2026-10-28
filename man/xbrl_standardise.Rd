@@ -2,21 +2,30 @@
 % Please edit documentation in R/xbrl_standardise.R
 \name{xbrl_standardise}
 \alias{xbrl_standardise}
-\title{Put figures written in the wrong unit back in the right one}
+\title{Put the tagging right: figures in the wrong unit, signs the wrong way}
 \usage{
-xbrl_standardise(x)
+xbrl_standardise(x, what = c("units", "signs"), tol = 1)
 }
 \arguments{
-\item{x}{A tibble from \code{\link[=read_xbrl]{read_xbrl()}}, with several years of at least some
-companies. A company with one filing has nothing to compare and is
-returned as it came.}
+\item{x}{A tibble from \code{\link[=read_xbrl]{read_xbrl()}}. For units, several years of at least
+some companies. A company with one filing has no units to compare and
+keeps its figures.}
+
+\item{what}{Which to standardise: \code{"units"}, \code{"signs"}, or both, the
+default. Units go first, because a figure in the wrong unit would make a
+statement fail to add up for a reason of its own.}
+
+\item{tol}{Absolute tolerance, in the reporting currency, for whether an
+activity adds up. Default \code{1}.}
 }
 \value{
 \code{x}, with \code{value} corrected where a figure was in the wrong unit
-and the columns \code{value_tagged} and \code{standardised} added. Attribute
-\code{"standardisation"} is a tibble with one row per figure looked at: the
-company, the element, the date, the two filings, the figures and what was
-done (\code{"corrected comparative"} or \code{"undecided"}).
+or had its sign reversed, and the columns \code{value_tagged} and
+\code{standardised} added. Attribute \code{"standardisation"} is a tibble with one
+row per figure looked at: \code{kind} (\code{"unit"} or \code{"sign"}), the filing, the
+company, the element, the date, the figure as tagged and as standardised,
+\code{action} (\code{"corrected comparative"}, \code{"flipped sign"} or \code{"undecided"})
+and \code{detail}.
 }
 \description{
 A filing tags each figure in kroner, and now and then a line is tagged in
@@ -54,6 +63,24 @@ copy of the fact moves with it: the same element, filing, date and basis.
 \code{value_tagged} keeps the figure as tagged and \code{standardised} says why it
 moved, on every row that did; elsewhere they are the value and \code{NA}.
 Nothing else in the filing is touched.
+}
+
+\section{Signs in the cash flow statement}{
+
+A line in investing or financing whose activity does not add up as
+tagged, and does add up with that one line reversed, has its sign reversed.
+The statement itself says which way the filer meant it. The same test is
+made one level up, of the three activities against the change in cash.
+
+What is not touched is as important. A line whose activity adds up as
+tagged keeps its sign, however its sign looks beside its element, because
+then the sign means something. A sale of a company reported negative in an
+investing activity that adds up with it -- Greenland Airports' grant taken
+to income, in its 2025 group accounts -- is a misclassification for the
+screen to find, not a sign to correct. Where several lines would each make
+the activity add up, none is reversed and the case is listed as undecided.
+Operating is left alone, because its lines are the income statement's own
+facts.
 }
 
 \examples{
