@@ -52,6 +52,7 @@ reference:
     contents:
       - check_statement
       - check_cascade
+      - check_cashflow
       - check_breakdown
       - check_movement
       - check_continuity

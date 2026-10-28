@@ -267,7 +267,9 @@ cvr_hits <- function(response) {
 #'   `_`. Defaults to the CVR number alone, which means a company's filings
 #'   for different years are told apart only by a `_2`, `_3` suffix in
 #'   whatever order the API returned them. Pass
-#'   `c("cvrnummer", "slutdato")` to name them by period instead.
+#'   `c("cvrnummer", "slutdato")` to name them by period instead. Characters
+#'   a file name cannot hold, such as the slash in `application/xml`, become
+#'   `-`.
 #'
 #' @return `hits` with two columns added: `path`, the file each row was
 #'   written to, and `downloaded`, whether it arrived. Rows that failed keep
@@ -311,6 +313,11 @@ cvr_download <- function(hits, path, sleep = 3, overwrite = FALSE,
   # stripped); repeated names get a _2, _3, ... suffix
   stem <- do.call(paste, c(lapply(name_by, function(k) as.character(hits[[k]])),
                            sep = "_"))
+  # A value is a name here, never a path. `dokumentmimetype` is
+  # `application/xml`, and passed to `name_by` its slash became a directory
+  # that was never created -- every download in the batch failed, one warning
+  # at a time.
+  stem <- gsub('[/\\\\:*?"<>|]+', "-", stem)
   ext <- tools::file_ext(sub("[?#].*$", "", hits$dokumenturl))
   dot_ext <- ifelse(nzchar(ext), paste0(".", ext), "")
   occurrence <- stats::ave(seq_along(stem), stem, FUN = seq_along)

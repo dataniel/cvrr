@@ -47,7 +47,10 @@
 #' @param max_zeros Maximum number of zero coefficients allowed in a solution,
 #'   i.e. how many items may be excluded. Default: `2L`.
 #' @param tol Absolute tolerance when comparing a signed sum to the target.
-#'   Default `1e-6`. Filings that round to whole thousands may need more.
+#'   Default `1e-6`. Filings that round to whole thousands may need more. A
+#'   tolerance finer than floating point can resolve at the size of the values
+#'   is raised to that resolution -- about 0.001 on a total of a hundred
+#'   billion.
 #'
 #' @return A tibble with one row per input row, carrying the grouping columns,
 #'   the label and value columns, and four more: `sign` (the resolved
@@ -63,8 +66,8 @@
 #' find_signs(items, label, value, total_label = "total")
 #'
 #' @seealso [read_xbrl()]. The XBRL taxonomy publishes these weights in its
-#'   calculation linkbase, which makes this search an independent check on
-#'   them rather than the only route to a sign.
+#'   calculation linkbase, which would make this search an independent check
+#'   on them. The package does not read the linkbase yet.
 #'
 #' @importFrom cli cli_abort cli_warn cli_alert_info
 #' @importFrom cli cli_progress_bar cli_progress_update cli_progress_done

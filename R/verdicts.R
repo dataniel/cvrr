@@ -1,8 +1,9 @@
 # What the checks concluded about one filing
 #
-# xbrl_accounts() reports four verdicts, and each is a summary of something
-# a caller can go and look at: check_statement() and check_cascade() give
-# the detail one row at a time, and xbrl_movements() carries the note's own.
+# xbrl_accounts() reports six verdicts, and each is a summary of something
+# a caller can go and look at: check_statement(), check_cascade() and
+# check_cashflow() give the detail one row at a time, and xbrl_movements()
+# carries the note's own.
 # What lives here is the reduction from that detail to one logical per
 # filing, and the line a stage prints when it finishes.
 
@@ -33,6 +34,32 @@
   if (is.null(ch) || nrow(ch) == 0)
     return(stats::setNames(logical(), character()))
   .by_file(!ch$status %in% "unexplained", ch$file)
+}
+
+
+# The cash flow statement's two verdicts, per filing, because it answers two
+# questions. Does it agree with itself -- activities, roll-forward, closing
+# cash -- and is every krone it says was borrowed a krone the balance sheet
+# owes? A statement can do the first perfectly and fail the second: moving an
+# amount between activities leaves every total where it was.
+#
+# Debt that grew by more than the cash raised is not a failure. A new lease
+# does that, and so does interest added to principal. Only the other direction
+# is: cash reported as borrowed with no debt in the balance sheet to match.
+.cashflow_verdicts <- function(x, basis) {
+  none <- stats::setNames(logical(), character())
+  d <- x[x$basis %in% basis, , drop = FALSE]
+  ch <- tryCatch(check_cashflow(d, by = c("file", "basis")),
+                 error = function(e) NULL)
+  if (is.null(ch) || nrow(ch) == 0) return(list(reconciled = none, debt = none))
+
+  internal <- ch$check %in% c("activities", "rollforward", "cash vs balance")
+  debt <- ch$check %in% "debt vs balance"
+  list(
+    reconciled = .by_file(ifelse(internal, startsWith(ch$verdict, "agrees"), NA),
+                          ch$file),
+    debt = .by_file(ifelse(debt, !ch$verdict %in% "borrowed more than owed", NA),
+                    ch$file))
 }
 
 

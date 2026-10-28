@@ -17,7 +17,7 @@ xbrl_accounts(
 
 \item{what}{Which tables to build. Any of \code{"company"}, \code{"audit"},
 \code{"location"}, \code{"checks"}, \code{"income_statement"}, \code{"balance"},
-\code{"movements"} and \code{"prose"}; all eight by default.}
+\code{"cash_flow"}, \code{"movements"} and \code{"prose"}; all nine by default.}
 
 \item{basis}{\code{"parent"} (default) or \code{"consolidated"}, for the statements
 and the note. An untagged figure is the parent's -- see \code{\link[=add_taxonomy]{add_taxonomy()}}.}
@@ -50,7 +50,7 @@ megabyte for never having to fetch a company's name in order to read its
 figures.
 }
 
-\section{Why eight tables and not one}{
+\section{Why nine tables and not one}{
 
 The company row is 40 columns wide and they answer different questions.
 \code{development} runs to 486 characters in the median filing, so keeping the
@@ -72,6 +72,10 @@ that signed it.}
 reported. See \code{\link[=xbrl_lines]{xbrl_lines()}}.}
 \item{\code{balance}}{One row per line, with the lines the filer left out
 derived and marked in \code{source}. See \code{\link[=xbrl_lines]{xbrl_lines()}}.}
+\item{\code{cash_flow}}{One row per line of the cash flow statement, as
+reported. Class B may leave the statement out, and a parent company
+that presents group accounts usually has one only on
+\code{basis = "consolidated"}. See \code{\link[=check_cashflow]{check_cashflow()}}.}
 \item{\code{movements}}{The fixed asset note, one row per movement per asset
 class. See \code{\link[=xbrl_movements]{xbrl_movements()}}.}
 \item{\code{prose}}{What management wrote: the activity, the year's
@@ -87,22 +91,29 @@ none of them.
 
 \section{Whether it adds up}{
 
-\code{income_statement} and \code{balance} carry \code{reconciled} on every row, so the
-commonest filter -- give me only the lines that add up -- needs no join.
-\code{movements} carries four verdicts of its own. And \code{checks} gathers the
-per-filing conclusions in one place, at the grain the question is asked:
+\code{income_statement}, \code{balance} and \code{cash_flow} carry \code{reconciled} on every
+row, so the commonest filter -- give me only the lines that add up -- needs
+no join. \code{movements} carries four verdicts of its own. And \code{checks} gathers
+the per-filing conclusions in one place, at the grain the question is asked:
 \itemize{
 \item \code{balance_reconciled} -- the balance sheet's debit side equals its credit
 side, from \code{\link[=check_statement]{check_statement()}}.
 \item \code{income_reconciled} -- no step of the income statement's cascade is left
 unexplained, from \code{\link[=check_cascade]{check_cascade()}}.
+\item \code{cashflow_reconciled} -- the activities sum to the change in cash, the
+change rolls the cash forward, and the closing cash is the balance
+sheet's, from \code{\link[=check_cashflow]{check_cashflow()}}.
+\item \code{cashflow_debt_backed} -- every krone the cash flow statement says was
+borrowed shows up as long-term debt in the balance sheet. It is \code{FALSE}
+for Greenland Airports' 2025 group accounts, whose internal arithmetic is
+perfect, and that is why it is a column of its own.
 \item \code{movements_reconciled} -- every block of the fixed asset note that could
 be checked rolls forward.
 \item \code{movements_cover} -- the notes together account for the fixed assets the
 balance sheet carries.
 }
 
-They are four columns and never one verdict, because a filing can pass any
+They are six columns and never one verdict, because a filing can pass any
 of them and fail the rest: a balance sheet that closes says nothing about
 whether the income statement does, and a fixed asset schedule that rolls
 forward perfectly for land and buildings says nothing about the machinery it
@@ -133,13 +144,15 @@ xbrl_accounts(x, what = "company")
 }
 \seealso{
 \code{\link[=read_xbrl]{read_xbrl()}} for what goes in, \code{\link[=xbrl_lines]{xbrl_lines()}}, \code{\link[=xbrl_company]{xbrl_company()}}
-and \code{\link[=xbrl_movements]{xbrl_movements()}} for the tables one at a time, \code{\link[=check_cascade]{check_cascade()}}
-and \code{\link[=check_statement]{check_statement()}} for the detail behind \code{reconciled}.
+and \code{\link[=xbrl_movements]{xbrl_movements()}} for the tables one at a time, \code{\link[=check_cascade]{check_cascade()}},
+\code{\link[=check_statement]{check_statement()}} and \code{\link[=check_cashflow]{check_cashflow()}} for the detail behind
+\code{reconciled}.
 
 Other taxonomy:
 \code{\link[=add_taxonomy]{add_taxonomy()}},
 \code{\link[=check_breakdown]{check_breakdown()}},
 \code{\link[=check_cascade]{check_cascade()}},
+\code{\link[=check_cashflow]{check_cashflow()}},
 \code{\link[=check_continuity]{check_continuity()}},
 \code{\link[=check_inclusion]{check_inclusion()}},
 \code{\link[=check_movement]{check_movement()}},

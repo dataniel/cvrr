@@ -13,6 +13,19 @@
   n1 <- length(v1)
   n2 <- length(v2)
 
+  # A tolerance finer than the arithmetic can resolve is not a tolerance. Two
+  # sums of the same items in a different order differ in their last bits, and
+  # at a group's accounts of 1e11 kroner that is around 1e-5 -- so the default
+  # `1e-6` rejected exact solutions as unsolved. Worse, the bucket keys below
+  # are `sum / tol`, and past 2^53 a key and its neighbours are the same
+  # double: every solution was found once per probe and a unique answer came
+  # back `ambiguous` with three solutions. Measured against an exhaustive
+  # search over 4,000 random cases, 184 disagreed, every one of them with
+  # values over 1e8 and the default tolerance. Raising the tolerance to what
+  # the magnitudes allow keeps the keys below 2^53 and removes both.
+  scale <- sum(abs(v1)) + sum(abs(v2)) + abs(target)
+  tol <- max(tol, 64 * .Machine$double.eps * scale)
+
   half <- function(v, constraints) {
     if (length(v) == 0)
       return(list(vals = matrix(integer(0), nrow = 1L), sums = 0, zeros = 0L))

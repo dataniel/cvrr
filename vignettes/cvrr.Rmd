@@ -186,6 +186,7 @@ a$audit             # who audited it, who filed it, with what tool
 a$checks            # whether any of it adds up
 a$income_statement  # lines, in statement order
 a$balance           # lines, with the ones the filer left out derived
+a$cash_flow         # the cash flow statement, as reported
 a$movements         # the fixed asset note, movement by movement
 a$prose             # what management wrote
 ```
@@ -193,7 +194,7 @@ a$prose             # what management wrote
 Every table opens with the same key — `cvr`, `name`, `period_start`,
 `period_end` — so moving between them needs no looking, and every table
 ends with `file`, so a figure can be traced back to the document it came
-from. The two statements carry `reconciled` on every row, so filtering to
+from. The three statements carry `reconciled` on every row, so filtering to
 the lines that add up needs no join; `a$checks` gathers the per-filing
 verdicts, and they are several columns rather than one because a filing
 can have a balance sheet that closes and an income statement that does
@@ -231,7 +232,6 @@ wanted, and `xbrl_lines()` reaches the statements `xbrl_accounts()` does
 not return:
 
 ```{r}
-xbrl_lines(x, "cashflow")
 xbrl_lines(x, "equity")
 ```
 
@@ -342,6 +342,38 @@ The income statement is not checked this way, because its lines carry
 signs. That is what `find_signs()` is for, and the two are independent:
 one reads a published file, the other only adds up the numbers in front
 of it.
+
+### The cash flow statement, against the rest
+
+A cash flow statement can be wrong in a way its own arithmetic never
+shows. Move an amount from one activity to another and every total still
+adds up. That is what happened in Greenland Airports' 2025 group accounts
+(CVR 12859724). A state grant of DKK 400 million was reported as
+"Optagelse af langfristet gæld", and 364 million of it was taken to
+income and then put under investing as an outflow, tagged in the XBRL as
+`SaleOfOtherCompany`. `check_cashflow()` holds the statement against the
+balance sheet, the income statement and the fixed asset note:
+
+```{r}
+x  <- read_xbrl("gai")   # the group's filings, from cvr_download()
+cf <- check_cashflow(x)
+cf[cf$check %in% c("activities", "rollforward", "cash vs balance",
+                   "debt vs balance"),
+   c("check", "reported", "expected", "residual", "offset_by", "verdict")]
+#>   check              reported    expected   residual offset_by                     verdict
+#>   activities       -298706000  -298706000          0 <NA>                          agrees
+#>   rollforward        65251000    65251000          0 <NA>                          agrees
+#>   cash vs balance    65251000    65251000          0 <NA>                          agrees
+#>   debt vs balance  1157390000   793390000  364000000 investing: SaleOfOtherCompany borrowed more than owed
+```
+
+Every internal check passes. The borrowing does not appear in the balance
+sheet, and `offset_by` names the line in investing that takes the same
+amount back out. A reclassification has to leave a gap in two places,
+equal and opposite, and that pair is what separates it from the ordinary
+reasons debt and cash part company. Across the 328 Danish filings in the
+corpus that tag a cash flow statement, that pairing with borrowing the
+balance sheet does not owe turns up nowhere.
 
 ### Movements through the year
 

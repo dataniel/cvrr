@@ -39,7 +39,10 @@ separately for each group.}
 i.e. how many items may be excluded. Default: \code{2L}.}
 
 \item{tol}{Absolute tolerance when comparing a signed sum to the target.
-Default \code{1e-6}. Filings that round to whole thousands may need more.}
+Default \code{1e-6}. Filings that round to whole thousands may need more. A
+tolerance finer than floating point can resolve at the size of the values
+is raised to that resolution -- about 0.001 on a total of a hundred
+billion.}
 }
 \value{
 A tibble with one row per input row, carrying the grouping columns,
@@ -95,6 +98,6 @@ find_signs(items, label, value, total_label = "total")
 }
 \seealso{
 \code{\link[=read_xbrl]{read_xbrl()}}. The XBRL taxonomy publishes these weights in its
-calculation linkbase, which makes this search an independent check on
-them rather than the only route to a sign.
+calculation linkbase, which would make this search an independent check
+on them. The package does not read the linkbase yet.
 }

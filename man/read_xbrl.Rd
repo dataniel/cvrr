@@ -41,8 +41,9 @@ debit/credit marking arrive with the facts rather than in a second step.
 An XBRL instance holds facts, contexts and units -- and no human-readable
 text at all. That is by design: the meaning of every element lives in the
 \emph{taxonomy} the filing points to with a single \code{link:schemaRef}. Labels, the
-statement hierarchy, the debit/credit balance and the calculation weights
-are all published there, and \code{\link[=add_taxonomy]{add_taxonomy()}} is what joins them on.
+statement hierarchy and the debit/credit balance are published there, and
+\code{\link[=add_taxonomy]{add_taxonomy()}} is what joins them on. The calculation weights are
+published there too, but they are not read.
 
 Because the taxonomy is keyed by qualified name, the element's namespace is
 returned alongside its local name. A Danish filing binds six or more

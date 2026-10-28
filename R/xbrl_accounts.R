@@ -15,7 +15,7 @@
 #' megabyte for never having to fetch a company's name in order to read its
 #' figures.
 #'
-#' @section Why eight tables and not one:
+#' @section Why nine tables and not one:
 #' The company row is 40 columns wide and they answer different questions.
 #' `development` runs to 486 characters in the median filing, so keeping the
 #' prose beside the accounting class means every glance at the class drags a
@@ -36,6 +36,10 @@
 #'     reported. See [xbrl_lines()].}
 #'   \item{`balance`}{One row per line, with the lines the filer left out
 #'     derived and marked in `source`. See [xbrl_lines()].}
+#'   \item{`cash_flow`}{One row per line of the cash flow statement, as
+#'     reported. Class B may leave the statement out, and a parent company
+#'     that presents group accounts usually has one only on
+#'     `basis = "consolidated"`. See [check_cashflow()].}
 #'   \item{`movements`}{The fixed asset note, one row per movement per asset
 #'     class. See [xbrl_movements()].}
 #'   \item{`prose`}{What management wrote: the activity, the year's
@@ -49,21 +53,28 @@
 #' none of them.
 #'
 #' @section Whether it adds up:
-#' `income_statement` and `balance` carry `reconciled` on every row, so the
-#' commonest filter -- give me only the lines that add up -- needs no join.
-#' `movements` carries four verdicts of its own. And `checks` gathers the
-#' per-filing conclusions in one place, at the grain the question is asked:
+#' `income_statement`, `balance` and `cash_flow` carry `reconciled` on every
+#' row, so the commonest filter -- give me only the lines that add up -- needs
+#' no join. `movements` carries four verdicts of its own. And `checks` gathers
+#' the per-filing conclusions in one place, at the grain the question is asked:
 #'
 #' * `balance_reconciled` -- the balance sheet's debit side equals its credit
 #'   side, from [check_statement()].
 #' * `income_reconciled` -- no step of the income statement's cascade is left
 #'   unexplained, from [check_cascade()].
+#' * `cashflow_reconciled` -- the activities sum to the change in cash, the
+#'   change rolls the cash forward, and the closing cash is the balance
+#'   sheet's, from [check_cashflow()].
+#' * `cashflow_debt_backed` -- every krone the cash flow statement says was
+#'   borrowed shows up as long-term debt in the balance sheet. It is `FALSE`
+#'   for Greenland Airports' 2025 group accounts, whose internal arithmetic is
+#'   perfect, and that is why it is a column of its own.
 #' * `movements_reconciled` -- every block of the fixed asset note that could
 #'   be checked rolls forward.
 #' * `movements_cover` -- the notes together account for the fixed assets the
 #'   balance sheet carries.
 #'
-#' They are four columns and never one verdict, because a filing can pass any
+#' They are six columns and never one verdict, because a filing can pass any
 #' of them and fail the rest: a balance sheet that closes says nothing about
 #' whether the income statement does, and a fixed asset schedule that rolls
 #' forward perfectly for land and buildings says nothing about the machinery it
@@ -77,7 +88,7 @@
 #' @param x A tibble from [read_xbrl()].
 #' @param what Which tables to build. Any of `"company"`, `"audit"`,
 #'   `"location"`, `"checks"`, `"income_statement"`, `"balance"`,
-#'   `"movements"` and `"prose"`; all eight by default.
+#'   `"cash_flow"`, `"movements"` and `"prose"`; all nine by default.
 #' @param basis `"parent"` (default) or `"consolidated"`, for the statements
 #'   and the note. An untagged figure is the parent's -- see [add_taxonomy()].
 #' @param persons Include the names of the auditor, the boards and the chairman
@@ -105,8 +116,9 @@
 #' }
 #'
 #' @seealso [read_xbrl()] for what goes in, [xbrl_lines()], [xbrl_company()]
-#'   and [xbrl_movements()] for the tables one at a time, [check_cascade()]
-#'   and [check_statement()] for the detail behind `reconciled`.
+#'   and [xbrl_movements()] for the tables one at a time, [check_cascade()],
+#'   [check_statement()] and [check_cashflow()] for the detail behind
+#'   `reconciled`.
 #' @family taxonomy
 #'
 #' @importFrom cli cli_abort cli_alert_success
@@ -118,7 +130,7 @@ xbrl_accounts <- function(x, what = NULL,
                           persons = FALSE, taxonomy = NULL) {
   basis <- match.arg(basis)
   all_of <- c("company", "location", "audit", "checks",
-              "income_statement", "balance", "movements", "prose")
+              "income_statement", "balance", "cash_flow", "movements", "prose")
   what <- if (is.null(what)) all_of else match.arg(what, all_of, several.ok = TRUE)
 
   if (!"file" %in% names(x))
@@ -157,6 +169,8 @@ xbrl_accounts <- function(x, what = NULL,
     .reconciles(x, "income", basis) else none
   ok_balance <- if (any(c("checks", "balance") %in% what))
     .reconciles(x, "balance", basis) else none
+  ok_cash <- if (any(c("checks", "cash_flow") %in% what))
+    .cashflow_verdicts(x, basis) else list(reconciled = none, debt = none)
 
   # The tables first and the company row last: it reports the others' verdicts,
   # and `out[what]` puts them back in the order asked for.
@@ -167,6 +181,10 @@ xbrl_accounts <- function(x, what = NULL,
   if ("balance" %in% what)
     out$balance <- step("Balance sheet", .with_verdict(
       xbrl_lines(x, "balance", basis = basis, taxonomy = taxonomy), ok_balance))
+  if ("cash_flow" %in% what)
+    out$cash_flow <- step("Cash flow statement", .with_verdict(
+      xbrl_lines(x, "cashflow", basis = basis, taxonomy = taxonomy),
+      ok_cash$reconciled))
 
   mv <- if (any(c("checks", "movements") %in% what))
     step("Fixed asset note", xbrl_movements(x, basis = basis)) else NULL
@@ -176,6 +194,8 @@ xbrl_accounts <- function(x, what = NULL,
     d <- step("Company", xbrl_company(x, persons = persons))
     d$income_reconciled  <- unname(ok_income[d$file])
     d$balance_reconciled <- unname(ok_balance[d$file])
+    d$cashflow_reconciled  <- unname(ok_cash$reconciled[d$file])
+    d$cashflow_debt_backed <- unname(ok_cash$debt[d$file])
 
     # Two verdicts from the note, because it answers two questions. Does every
     # block that could be checked close, and do the notes account for the fixed

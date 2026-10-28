@@ -72,7 +72,8 @@ test_that("the tables come back, named and keyed", {
 
   expect_s3_class(a, "cvrr_accounts")
   expect_named(a, c("company", "location", "audit", "checks",
-                    "income_statement", "balance", "movements", "prose"))
+                    "income_statement", "balance", "cash_flow", "movements",
+                    "prose"))
   for (nm in names(a))
     expect_true(all(c("cvr", "period_end") %in% names(a[[nm]])), info = nm)
 })
@@ -174,6 +175,7 @@ test_that("the movements table brings its own verdicts", {
 test_that("the verdicts are gathered in checks, not on the company row", {
   a <- xbrl_accounts(balanced())
   verdicts <- c("income_reconciled", "balance_reconciled",
+                "cashflow_reconciled", "cashflow_debt_backed",
                 "movements_reconciled", "movements_cover")
 
   expect_true(all(verdicts %in% names(a$checks)))
@@ -205,6 +207,15 @@ test_that("a filing with no fixed asset note gets NA, not FALSE", {
   a <- xbrl_accounts(balanced())
   expect_true(is.na(a$checks$movements_reconciled))
   expect_true(is.na(a$checks$movements_cover))
+})
+
+# Class B may leave the cash flow statement out, and nothing missing is not
+# the same as something wrong.
+test_that("a filing with no cash flow statement gets NA, not FALSE", {
+  a <- xbrl_accounts(balanced())
+  expect_true(is.na(a$checks$cashflow_reconciled))
+  expect_true(is.na(a$checks$cashflow_debt_backed))
+  expect_equal(nrow(a$cash_flow), 0L)
 })
 
 # One unchecked block must not decide the filing: the question is whether

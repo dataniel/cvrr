@@ -103,6 +103,10 @@ check_statement <- function(x, by = NULL, period = "closing", tol = 1) {
   if (nrow(d) == 0)
     return(tibble::as_tibble(data.frame()))
 
+  # A plain data frame for the loop. Indexing a tibble row by row validates
+  # every column each time, and on 200 filings that was a large part of the run.
+  d <- as.data.frame(d)
+
   # paste, not interaction(): interaction() takes its factors through `...`,
   # so handing it one list groups everything into a handful of buckets and the
   # checks run across companies that have nothing to do with each other.
@@ -117,47 +121,78 @@ check_statement <- function(x, by = NULL, period = "closing", tol = 1) {
 }
 
 .check_group <- function(g, by, tol, conflicting = character()) {
-  out <- lapply(seq_len(nrow(g)), function(i) {
-    kids <- .nearest_children(g, g$code[i])
-    # One reported child is enough to check: subtotal minus that child is the
-    # unspecified remainder, which is exactly what a statistic needs to see.
-    if (nrow(kids) < 1) return(NULL)
+  # Each line's nearest reported ancestor, once for the group. Asking every
+  # subtotal which lines lie below it scanned the whole statement per
+  # subtotal; with the ancestor known, a subtotal's children are a lookup.
+  up <- .nearest_reported_parent(g$code)
+  kids_of <- split(seq_len(nrow(g)), factor(up, levels = g$code))
 
-    total     <- g$value[i]
-    specified <- sum(kids$value)
-    residual  <- total - specified
+  # One reported child is enough to check: subtotal minus that child is the
+  # unspecified remainder, which is exactly what a statistic needs to see.
+  has <- which(lengths(kids_of) > 0)
+  if (length(has) == 0)
+    return(.check_sides(g, by, tol, structure_of(g), up))
 
-    n_part <- if (abs(residual) < tol) nrow(kids)
-              else .subset_hitting(kids$value, total, tol)
+  n_kids    <- lengths(kids_of)[has]
+  total     <- g$value[has]
+  specified <- vapply(kids_of[has], function(k) sum(g$value[k]), numeric(1))
+  residual  <- total - specified
+  n_part <- vapply(seq_along(has), function(j)
+    if (abs(residual[j]) < tol) n_kids[[j]]
+    else as.integer(.subset_hitting(g$value[kids_of[[has[j]]]], total[j], tol)),
+    integer(1))
 
-    # A line stated twice with two different amounts makes the subtotal above
-    # it unjudgeable: which of the two was meant is not ours to decide.
-    verdict <- if (any(c(g$code[i], kids$code) %in% conflicting))
-                 "conflicting duplicates"
-               else if (abs(residual) < tol) "complete"
-               else if (!is.na(n_part)) "two groupings"
-               else if (residual > 0) "unspecified remainder"
-               else "over-specified"
+  # A line stated twice with two different amounts makes the subtotal above
+  # it unjudgeable: which of the two was meant is not ours to decide.
+  clash <- vapply(seq_along(has), function(j)
+    any(c(g$code[has[j]], g$code[kids_of[[has[j]]]]) %in% conflicting),
+    logical(1))
+  verdict <- ifelse(clash, "conflicting duplicates",
+             ifelse(abs(residual) < tol, "complete",
+             ifelse(!is.na(n_part), "two groupings",
+             ifelse(residual > 0, "unspecified remainder", "over-specified"))))
 
-    cbind(
-      g[i, by, drop = FALSE],
-      data.frame(statement = g$statement[i], code = g$code[i],
-                 elementid = g$elementid[i], label = g$label[i],
-                 total = total, specified = specified, residual = residual,
-                 n_children = nrow(kids), n_partition = n_part,
-                 verdict = verdict, stringsAsFactors = FALSE),
-      row.names = NULL
-    )
-  })
-  do.call(rbind, rows_or_null(c(out, list(.check_sides(g, by, tol, structure_of(g))))))
+  out <- cbind(
+    g[has, by, drop = FALSE],
+    data.frame(statement = g$statement[has], code = g$code[has],
+               elementid = g$elementid[has], label = g$label[has],
+               total = total, specified = unname(specified),
+               residual = unname(residual), n_children = unname(n_kids),
+               n_partition = n_part, verdict = verdict,
+               stringsAsFactors = FALSE),
+    row.names = NULL)
+  rbind(out, .check_sides(g, by, tol, structure_of(g), up))
+}
+
+# The nearest code above each one that is itself in `codes`, or NA. Walks up
+# one segment at a time, so it costs the depth of the hierarchy per line and
+# not the length of the statement.
+.nearest_reported_parent <- function(codes) {
+  out <- rep(NA_character_, length(codes))
+  cur <- codes
+  # A code with no dot left has nowhere further up to go.
+  open <- grepl(".", cur, fixed = TRUE)
+  while (any(open)) {
+    cur[open] <- sub("[.][^.]+$", "", cur[open])
+    hit <- open & cur %in% codes
+    out[hit] <- cur[hit]
+    open <- open & !hit & grepl(".", cur, fixed = TRUE)
+  }
+  out
 }
 
 # The two sides of a statement: where the reported lines under one node split
 # into a debit group and a credit group, the groups are compared rather than
 # added. Nothing is named; the balance attribute decides.
-.check_sides <- function(g, by, tol, roots) {
+.check_sides <- function(g, by, tol, roots,
+                         up = .nearest_reported_parent(g$code)) {
   out <- lapply(roots, function(rt) {
-    kids <- .nearest_children(g, rt)
+    # A root is not reported, so its children are the lines below it with no
+    # reported line between: their nearest reported ancestor, if any, lies
+    # outside it.
+    pre <- paste0(rt, ".")
+    kids <- g[startsWith(g$code, pre) & (is.na(up) | !startsWith(up, pre)), ,
+              drop = FALSE]
     kids <- kids[!is.na(kids$balance), , drop = FALSE]
     if (nrow(kids) < 2) return(NULL)
     dr <- kids$value[kids$balance == "debit"]

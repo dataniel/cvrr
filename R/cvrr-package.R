@@ -32,6 +32,7 @@
 #' a$checks            # whether any of it adds up
 #' a$income_statement  # lines, in statement order
 #' a$balance           # lines, with the ones the filer left out derived
+#' a$cash_flow         # the cash flow statement, as reported
 #' a$movements         # the fixed asset note, movement by movement
 #' a$prose             # what management wrote
 #' ```
@@ -94,7 +95,8 @@
 #' * **Derive:** [xbrl_fill()] and [xbrl_resolve()], which [xbrl_lines()]
 #'   uses and which can be run on their own
 #' * **Reconcile:** [check_statement()], [check_breakdown()],
-#'   [check_cascade()], [check_movement()], [check_continuity()],
+#'   [check_cascade()], [check_cashflow()], [check_movement()],
+#'   [check_continuity()],
 #'   [check_inclusion()], [find_signs()]
 #' * **Read the notes:** [xbrl_note_tables()], [xbrl_period()]
 #'

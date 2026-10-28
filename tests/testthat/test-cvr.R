@@ -216,6 +216,22 @@ test_that("cvr_download() names files from name_by", {
                c("12345678_2023-12-31.xml", "12345678_2024-12-31.xml"))
 })
 
+# The mime type is the obvious thing to tell a PDF from its XML by, and its
+# slash used to become a directory that did not exist: all 28 downloads of
+# one batch failed.
+test_that("cvr_download() keeps a slash in name_by out of the path", {
+  dir <- withr::local_tempdir()
+  hits <- tibble::tibble(cvrnummer = "12345678",
+                         dokumentmimetype = "application/xml",
+                         dokumenturl = "http://example.invalid/a.xml")
+  writeLines("x", file.path(dir, "12345678_application-xml.xml"))
+
+  res <- suppressMessages(cvr_download(hits, dir, overwrite = "skip",
+                                       name_by = c("cvrnummer", "dokumentmimetype")))
+  expect_equal(normalizePath(dirname(res$path)), normalizePath(dir))
+  expect_equal(basename(res$path), "12345678_application-xml.xml")
+})
+
 # The host does not answer on 443 at all: an https request hangs until it
 # times out. This was changed to https once, on the assumption that it cost
 # nothing, and it broke every search.

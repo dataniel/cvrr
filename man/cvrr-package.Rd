@@ -38,6 +38,7 @@ a$audit             # who audited it, who filed it, with what tool
 a$checks            # whether any of it adds up
 a$income_statement  # lines, in statement order
 a$balance           # lines, with the ones the filer left out derived
+a$cash_flow         # the cash flow statement, as reported
 a$movements         # the fixed asset note, movement by movement
 a$prose             # what management wrote
 }\if{html}{\out{</div>}}
@@ -111,7 +112,8 @@ and \code{\link[=xbrl_movements]{xbrl_movements()}} for one table at a time
 \item \strong{Derive:} \code{\link[=xbrl_fill]{xbrl_fill()}} and \code{\link[=xbrl_resolve]{xbrl_resolve()}}, which \code{\link[=xbrl_lines]{xbrl_lines()}}
 uses and which can be run on their own
 \item \strong{Reconcile:} \code{\link[=check_statement]{check_statement()}}, \code{\link[=check_breakdown]{check_breakdown()}},
-\code{\link[=check_cascade]{check_cascade()}}, \code{\link[=check_movement]{check_movement()}}, \code{\link[=check_continuity]{check_continuity()}},
+\code{\link[=check_cascade]{check_cascade()}}, \code{\link[=check_cashflow]{check_cashflow()}}, \code{\link[=check_movement]{check_movement()}},
+\code{\link[=check_continuity]{check_continuity()}},
 \code{\link[=check_inclusion]{check_inclusion()}}, \code{\link[=find_signs]{find_signs()}}
 \item \strong{Read the notes:} \code{\link[=xbrl_note_tables]{xbrl_note_tables()}}, \code{\link[=xbrl_period]{xbrl_period()}}
 }

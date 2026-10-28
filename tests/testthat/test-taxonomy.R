@@ -460,3 +460,14 @@ test_that("check_cascade() takes its steps from the statement it is checking", {
   expect_true(all(startsWith(cc$step, "501.") | cc$step == "tail"))
   expect_false(any(is.na(cc$target)))
 })
+
+# check_statement() finds a subtotal's children by each line's nearest
+# reported ancestor, computed once, rather than by scanning the statement for
+# every subtotal. The answer has to be the nearest *reported* one: a filer may
+# leave an intermediate parent empty.
+test_that("each line's nearest reported ancestor skips the unreported ones", {
+  codes <- c("400.00.020", "400.00.020.010.020", "400.00.020.010",
+             "400.00.020.030.010", "400.00.021")
+  expect_equal(cvrr:::.nearest_reported_parent(codes),
+               c(NA, "400.00.020.010", "400.00.020", "400.00.020", NA))
+})

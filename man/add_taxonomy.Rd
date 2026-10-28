@@ -111,6 +111,7 @@ the tables built on top of it, \code{\link[=read_taxonomy]{read_taxonomy()}}.
 Other taxonomy:
 \code{\link[=check_breakdown]{check_breakdown()}},
 \code{\link[=check_cascade]{check_cascade()}},
+\code{\link[=check_cashflow]{check_cashflow()}},
 \code{\link[=check_continuity]{check_continuity()}},
 \code{\link[=check_inclusion]{check_inclusion()}},
 \code{\link[=check_movement]{check_movement()}},

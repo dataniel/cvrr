@@ -43,6 +43,7 @@ a$audit             # who audited it, who filed it, with what tool
 a$checks            # whether any of it adds up
 a$income_statement  # lines, in statement order
 a$balance           # lines, with the ones the filer left out derived
+a$cash_flow         # the cash flow statement, as reported
 a$movements         # the fixed asset note, movement by movement
 a$prose             # what management wrote
 ```
@@ -53,10 +54,26 @@ filings together by hand.
 
 Every table opens with the same key — `cvr`, `name`, `period_start`,
 `period_end` — and ends with `file`, so moving between them needs no looking
-and every figure can be traced back to the document it came from. The two
+and every figure can be traced back to the document it came from. The three
 statements carry `reconciled` on every row, so filtering to the lines that
 add up needs no join, and `checks` gathers the per-filing verdicts in one
 place.
+
+## A cash flow statement that adds up, and is still wrong
+
+Greenland Airports' 2025 group accounts reported a DKK 400 million state
+grant as new long-term borrowing. Every total in the cash flow statement
+still added up, because moving an amount between activities leaves the
+totals alone. `check_cashflow()` holds the statement against the balance
+sheet, the income statement and the fixed asset note, and on that filing it
+finds 364 million of borrowing the balance sheet does not owe. It also names
+the line in investing that takes the same amount back out: a grant taken to
+income, tagged in the XBRL as `SaleOfOtherCompany`.
+
+```r
+cf <- check_cashflow(x)
+cf[cf$verdict == "borrowed more than owed", ]
+```
 
 ## Two forms, one of them useful
 
@@ -91,9 +108,12 @@ Nothing is dropped: every row comes back with a `status` of `unique`,
 every candidate assignment agreed on are filled in even when the group as a
 whole is ambiguous.
 
-The taxonomy publishes these weights too, in its calculation linkbase. The
-two routes are independent, so running both is a genuine cross-check rather
-than a restatement — see `vignette("cvrr")`.
+The search is tested against an exhaustive one, every assignment
+enumerated, on random cases from kroner to a group's hundred billion. That
+test found a precision fault that turned unique answers ambiguous on large
+amounts, and the fault is fixed. The taxonomy also publishes these weights
+in its calculation linkbase. The package does not read the linkbase yet, so
+the two routes have not been compared.
 
 ## The taxonomy is where the meaning lives
 
@@ -142,7 +162,7 @@ In the order the route runs.
 | Function | Description |
 |----------|-------------|
 | `read_xbrl()` | Read one filing, a list of them, or a directory, into one tibble with the taxonomy on it |
-| `xbrl_accounts()` | The filings divided into eight keyed tables: the company, where it is, the audit trail, the checks, the two statements, the fixed asset note and the prose |
+| `xbrl_accounts()` | The filings divided into nine keyed tables: the company, where it is, the audit trail, the checks, the three statements, the fixed asset note and the prose |
 | `xbrl_company()` | The company behind a filing: identity, legal form, class, auditor, employees, activity |
 | `xbrl_lines()` | One statement, line by line, in statement order |
 | `xbrl_movements()` | The fixed asset note as a roll-forward: cost, depreciation and revaluation at each end of the year, and the movements between |
@@ -165,6 +185,7 @@ In the order the route runs.
 |----------|-------------|
 | `check_statement()` | Reconcile every subtotal against the lines below it |
 | `check_cascade()` | Reconcile an income statement step by step to the result for the year |
+| `check_cashflow()` | Reconcile a cash flow statement, and tie it to the balance sheet, the income statement and the fixed asset note |
 | `check_breakdown()` | Reconcile a dimensional breakdown against the line it breaks down |
 | `check_movement()` | Reconcile an opening balance and its movements to the closing balance |
 | `check_continuity()` | Does the balance a company closed on reopen in the next filing? |

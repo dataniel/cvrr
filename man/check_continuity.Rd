@@ -85,6 +85,7 @@ Other taxonomy:
 \code{\link[=add_taxonomy]{add_taxonomy()}},
 \code{\link[=check_breakdown]{check_breakdown()}},
 \code{\link[=check_cascade]{check_cascade()}},
+\code{\link[=check_cashflow]{check_cashflow()}},
 \code{\link[=check_inclusion]{check_inclusion()}},
 \code{\link[=check_movement]{check_movement()}},
 \code{\link[=check_statement]{check_statement()}},

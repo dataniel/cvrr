@@ -407,6 +407,7 @@ xbrl_company <- function(x, persons = FALSE, prose = TRUE) {
                "development_source", "events_after", "expected_development",
                "mortgages", "contingent_liabilities"),
   checks   = c("income_reconciled", "balance_reconciled",
+               "cashflow_reconciled", "cashflow_debt_backed",
                "movements_reconciled", "movements_cover"))
 
 # One of those tables: the key, the group's own columns, and the file last.

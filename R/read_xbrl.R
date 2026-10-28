@@ -9,8 +9,9 @@
 #' An XBRL instance holds facts, contexts and units -- and no human-readable
 #' text at all. That is by design: the meaning of every element lives in the
 #' *taxonomy* the filing points to with a single `link:schemaRef`. Labels, the
-#' statement hierarchy, the debit/credit balance and the calculation weights
-#' are all published there, and [add_taxonomy()] is what joins them on.
+#' statement hierarchy and the debit/credit balance are published there, and
+#' [add_taxonomy()] is what joins them on. The calculation weights are
+#' published there too, but they are not read.
 #'
 #' Because the taxonomy is keyed by qualified name, the element's namespace is
 #' returned alongside its local name. A Danish filing binds six or more

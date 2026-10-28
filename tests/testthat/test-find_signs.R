@@ -158,6 +158,78 @@ test_that(".meet_in_middle() returns every assignment that reaches the target", 
   expect_equal(nrow(none), 0)
 })
 
+# The search is clever, so it is checked against one that is not: every
+# assignment of every item, enumerated, with the same preference for the
+# fewest zeros. Random cases cover what hand-written ones miss -- repeated
+# values, nil items, negatives, constraints, and magnitudes from kroner to a
+# group's hundred billion. This is how the precision bug below was found.
+brute_signs <- function(v, target, max_zeros, fixed, tol) {
+  n <- length(v)
+  grid <- as.matrix(expand.grid(rep(list(-1:1), n)))
+  ok <- abs(grid %*% v - target) <= tol & rowSums(grid == 0) <= max_zeros
+  ok <- ok & apply(grid, 1, function(s) all(s[fixed == 1L] >= 0) &&
+                     all(s[fixed == -1L] <= 0))
+  s <- grid[ok, , drop = FALSE]
+  if (nrow(s) == 0) return(list(status = "unsolved", n = 0L))
+  s <- s[rowSums(s == 0) == min(rowSums(s == 0)), , drop = FALSE]
+  list(status = if (nrow(s) == 1) "unique" else "ambiguous", n = nrow(s),
+       sign = as.integer(apply(s, 2, function(x) if (all(x == x[1])) x[1] else NA)))
+}
+
+test_that("find_signs() agrees with an exhaustive search", {
+  set.seed(42)
+  for (case in seq_len(300)) {
+    n <- sample(1:6, 1)
+    scale <- sample(c(1, 1e3, 1e6, 1e9, 1e11), 1)
+    v <- sample(c(round(runif(n, -1000, 1000)), rep(250, 3), 0), n) * scale
+    fixed <- sample(c(0L, 0L, 0L, 1L, -1L), n, replace = TRUE)
+    max_zeros <- sample(0:2, 1)
+    target <- if (runif(1) < 0.75) sum(sample(-1:1, n, replace = TRUE) * v) else 7
+    lab <- paste0("i", seq_len(n))
+
+    got <- suppressWarnings(find_signs(
+      data.frame(label = c(lab, "total"), value = c(v, target)), label, value,
+      positive = lab[fixed == 1L], negative = lab[fixed == -1L],
+      max_zeros = max_zeros))
+    want <- brute_signs(v, target, max_zeros, fixed, 1e-6)
+
+    info <- paste("case", case)
+    expect_equal(got$status[1], want$status, info = info)
+    if (want$status != "unsolved") {
+      expect_equal(got$n_solutions[1], want$n, info = info)
+      expect_equal(got$sign[seq_len(n)], want$sign, info = info)
+    }
+  }
+})
+
+# The bucket keys are sum / tol. At a hundred billion and the default 1e-6
+# that is past 2^53, where a key and both its neighbours are the same double,
+# and every solution was found three times over: unique answers came back as
+# ambiguous with three solutions. 184 of 4,000 random cases did this.
+test_that("a unique answer stays unique at a group's magnitudes", {
+  df <- data.frame(label = c("revenue", "costs", "total"),
+                   value = c(312e9, 187e9, 125e9))
+  r <- find_signs(df, label, value)
+  expect_equal(r$status[1], "unique")
+  expect_equal(r$n_solutions[1], 1L)
+  expect_equal(r$sign, c(1L, -1L, 1L))
+})
+
+# Order is not information. The same items in any order are the same problem.
+test_that("find_signs() does not depend on the order of the items", {
+  df <- data.frame(label = c("a", "b", "c", "d", "total"),
+                   value = c(120, 45, 30, 15, 60))
+  ref <- find_signs(df, label, value)
+  ref <- ref[order(ref$label), ]
+  for (k in 1:5) {
+    p <- df[c(sample(4), 5), ]
+    r <- find_signs(p, label, value)
+    r <- r[order(r$label), ]
+    expect_equal(r$sign, ref$sign)
+    expect_equal(r$status, ref$status)
+  }
+})
+
 test_that(".sign_grid() enumerates the constrained ranges", {
   free <- .sign_grid(2, c(0L, 0L))
   expect_equal(nrow(free), 9)

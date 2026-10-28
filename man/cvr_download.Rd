@@ -25,7 +25,9 @@ resumed; \code{TRUE} replaces them.}
 \verb{_}. Defaults to the CVR number alone, which means a company's filings
 for different years are told apart only by a \verb{_2}, \verb{_3} suffix in
 whatever order the API returned them. Pass
-\code{c("cvrnummer", "slutdato")} to name them by period instead.}
+\code{c("cvrnummer", "slutdato")} to name them by period instead. Characters
+a file name cannot hold, such as the slash in \code{application/xml}, become
+\code{-}.}
 }
 \value{
 \code{hits} with two columns added: \code{path}, the file each row was
