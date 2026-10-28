@@ -109,6 +109,8 @@ with the taxonomy resolved on the way in
 and \code{\link[=xbrl_movements]{xbrl_movements()}} for one table at a time
 \item \strong{Analyse:} \code{\link[=xbrl_panel]{xbrl_panel()}} -- one row per company and year, the figures
 as named variables -- then \code{\link[=xbrl_ratios]{xbrl_ratios()}} and \code{\link[=xbrl_robustness]{xbrl_robustness()}}
+\item \strong{Report:} \code{\link[=xbrl_report]{xbrl_report()}} -- one HTML page, chosen by the data -- and
+\code{\link[=xbrl_report_data]{xbrl_report_data()}} for its content as tables and sentences
 \item \strong{Name and place:} \code{\link[=add_taxonomy]{add_taxonomy()}}, \code{\link[=read_taxonomy]{read_taxonomy()}},
 \link{cvrr_taxonomy_tables}
 \item \strong{Derive:} \code{\link[=xbrl_fill]{xbrl_fill()}} and \code{\link[=xbrl_resolve]{xbrl_resolve()}}, which \code{\link[=xbrl_lines]{xbrl_lines()}}

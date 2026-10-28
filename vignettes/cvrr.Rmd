@@ -271,6 +271,25 @@ Comparable means the same accounting class unless told otherwise. A branch
 of industry is better and is not in a filing; join it on `cvr` and pass its
 column as `group`.
 
+### A report
+
+The whole chain ends in a page. `xbrl_report()` writes one HTML file, and
+which report it is follows from the filings given: one company in one
+year, one company over time, many companies in one year, or many over
+several:
+
+```{r}
+xbrl_report(x, "company.html", cvr = "12345678", peers = p)
+xbrl_report(x, "all.html")
+```
+
+It opens with what matters most, as sentences. Each sentence is a rule
+with a threshold: the auditor's opinion, a loss for the second year running,
+an equity ratio that fell five points or more, cash that covers less than a
+month's wages, a place in the bottom tenth among peers. The tables follow.
+`xbrl_report_data()` returns the same content as data, so a report of one's
+own can use it.
+
 ## Signs
 
 XBRL amounts often arrive without a meaningful sign: costs can be

@@ -103,6 +103,24 @@ without, and with four or more factors 13.5% of the time against 4.8% with
 none. A branch of industry is the better comparison group, but it is not in a
 filing. Join it from a register extract and pass `group = "branch"`.
 
+## A report
+
+`xbrl_report()` runs the whole chain (standardise, screen, panel, ratios,
+robustness) and writes one self-contained HTML page. The data decides which
+report it is: one company in one year, one company over time, many companies
+in one year, or many over time. `type` overrides that. The page opens with
+what matters most, in sentences, and has the tables behind them underneath:
+
+```r
+xbrl_report(x, "12345678.html", cvr = "12345678", peers = xbrl_panel(x))
+xbrl_report(x, "all.html")
+```
+
+The content is also there as data. `xbrl_report_data()` returns the tables
+and the sentences, so a report of one's own can be built from the same
+parts. The page needs nothing outside R, no pandoc and no internet. It is in
+Danish by default, and `lang = "en"` gives English.
+
 ## Which filings are worth reading?
 
 `xbrl_screen()` runs every check over a pile of filings and returns what
@@ -249,6 +267,8 @@ In the order the route runs.
 | `xbrl_panel()` | One row per company and year: the statement figures as named variables, background and trust columns |
 | `xbrl_ratios()` | Key ratios, the change from last year, and the place among peers |
 | `xbrl_robustness()` | Signs of financial vulnerability, held against which companies stopped filing, and what the figures could absorb |
+| `xbrl_report_data()` | What a report should say, as tables and sentences, for one company or many, one year or several |
+| `xbrl_report()` | The report as one self-contained HTML page |
 | `xbrl_company()` | The company behind a filing: identity, legal form, class, group, auditor and opinion, going concern, employees, activity |
 | `xbrl_lines()` | One statement, line by line, in statement order |
 | `xbrl_movements()` | The fixed asset note as a roll-forward: cost, depreciation and revaluation at each end of the year, and the movements between |

@@ -71,6 +71,8 @@ Other taxonomy:
 \code{\link[=xbrl_note_tables]{xbrl_note_tables()}},
 \code{\link[=xbrl_panel]{xbrl_panel()}},
 \code{\link[=xbrl_ratios]{xbrl_ratios()}},
+\code{\link[=xbrl_report]{xbrl_report()}},
+\code{\link[=xbrl_report_data]{xbrl_report_data()}},
 \code{\link[=xbrl_resolve]{xbrl_resolve()}},
 \code{\link[=xbrl_robustness]{xbrl_robustness()}},
 \code{\link[=xbrl_screen]{xbrl_screen()}},

@@ -92,6 +92,8 @@
 #'   and [xbrl_movements()] for one table at a time
 #' * **Analyse:** [xbrl_panel()] -- one row per company and year, the figures
 #'   as named variables -- then [xbrl_ratios()] and [xbrl_robustness()]
+#' * **Report:** [xbrl_report()] -- one HTML page, chosen by the data -- and
+#'   [xbrl_report_data()] for its content as tables and sentences
 #' * **Name and place:** [add_taxonomy()], [read_taxonomy()],
 #'   [cvrr_taxonomy_tables]
 #' * **Derive:** [xbrl_fill()] and [xbrl_resolve()], which [xbrl_lines()]

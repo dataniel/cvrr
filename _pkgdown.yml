@@ -38,6 +38,11 @@ reference:
       - xbrl_ratios
       - xbrl_robustness
 
+  - title: Report
+    contents:
+      - xbrl_report
+      - xbrl_report_data
+
   - title: One table at a time
     contents:
       - xbrl_company
