@@ -343,6 +343,25 @@ signs. That is what `find_signs()` is for, and the two are independent:
 one reads a published file, the other only adds up the numbers in front
 of it.
 
+### Screening a pile of filings
+
+Each check answers one question about one statement. `xbrl_screen()` asks
+all of them of every filing and returns the answers worth reading, one row
+per finding, most serious and largest first:
+
+```{r}
+s <- xbrl_screen(x)
+s[c("cvr", "name", "period_end", "check", "finding", "share", "severity")]
+```
+
+`share` is the amount against the filing's total assets, and a finding under
+1% of them moves down a level, so the list is ordered by what matters
+rather than by kroner. Over the 4,304 filings of 2020-2024, 533 have a
+finding and 54 a serious one. In 41 of those 54 it is a figure written in
+kroner one year and in thousands the next. That is a tagging error a single filing cannot
+show, because everything inside it is consistent. It shows only when the
+filing is set beside the one before it, so pass several years.
+
 ### The cash flow statement, against the rest
 
 A cash flow statement can be wrong in a way its own arithmetic never

@@ -59,6 +59,29 @@ statements carry `reconciled` on every row, so filtering to the lines that
 add up needs no join, and `checks` gathers the per-filing verdicts in one
 place.
 
+## Which filings are worth reading?
+
+`xbrl_screen()` runs every check over a pile of filings and returns what
+they found, one row per finding, ranked by how much it would change what a
+reader takes from the accounts:
+
+```r
+s <- xbrl_screen(x)
+s[s$severity == "high", ]
+```
+
+The checks cover a balance sheet that does not balance, an income statement
+step no signs explain, a cash flow statement that does not add up or reports
+borrowing the balance sheet does not owe, and figures that do not reopen in
+the next year's filing: written in the other unit, or restated. Each finding
+carries its amount and its share of total assets, so a rounding difference
+at a large company does not outrank a real gap at a small one. Over 4,304
+Danish and Greenlandic filings for 2020-2024, 533 have a finding and 54 a
+serious one. In 41 of those 54 the serious finding is a figure written in
+kroner one year and in thousands the next.
+
+A finding is a reason to read the report, not a conclusion about it.
+
 ## A cash flow statement that adds up, and is still wrong
 
 Greenland Airports' 2025 group accounts reported a DKK 400 million state
@@ -187,6 +210,7 @@ In the order the route runs.
 
 | Function | Description |
 |----------|-------------|
+| `xbrl_screen()` | Every check over a pile of filings, findings ranked by how much they matter |
 | `check_statement()` | Reconcile every subtotal against the lines below it |
 | `check_cascade()` | Reconcile an income statement step by step to the result for the year |
 | `check_cashflow()` | Reconcile a cash flow statement, and tie it to the balance sheet, the income statement and the fixed asset note |

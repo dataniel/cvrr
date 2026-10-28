@@ -94,6 +94,7 @@
 #'   [cvrr_taxonomy_tables]
 #' * **Derive:** [xbrl_fill()] and [xbrl_resolve()], which [xbrl_lines()]
 #'   uses and which can be run on their own
+#' * **Screen:** [xbrl_screen()] -- every check at once, the findings ranked
 #' * **Reconcile:** [check_statement()], [check_breakdown()],
 #'   [check_cascade()], [check_cashflow()], [check_movement()],
 #'   [check_continuity()],
