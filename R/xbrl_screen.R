@@ -362,6 +362,17 @@ print.cvrr_screen <- function(x, n = 10, ...) {
   cc$basis <- files$basis[i]
   cc <- cc[!is.na(cc$file), , drop = FALSE]
 
+  # Only periods the earlier filing is about: its own year and the one before.
+  # Some filers tag the five-year overview on placeholder dates -- 2000-12-30,
+  # 2001-12-30 -- that each filing reuses for its own earlier years, so two
+  # filings "state" the same date with figures for different years. Compared,
+  # that came out as a restatement of 79% of total assets that never happened.
+  first <- as.Date(substr(cc$period, 1, 10))
+  closed <- as.Date(cc$closed_in)
+  cc <- cc[!is.na(first) & !is.na(closed) & first >= closed - 800 &
+             first <= closed, , drop = FALSE]
+  if (!nrow(cc)) return(NULL)
+
   # After standardising, what is still in the other unit is a figure no third
   # figure could settle. That is a question about the tagging, listed with the
   # corrections, not a finding about the accounts.

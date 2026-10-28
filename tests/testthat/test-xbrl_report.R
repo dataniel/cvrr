@@ -35,7 +35,7 @@ test_that("each rule says its thing when its threshold is crossed", {
   expect_match(highlight(equity_ratio = 0.2, equity_ratio_change = -0.2),
                "Soliditeten faldt", all = FALSE)
   expect_match(highlight(cash_months = 0.5), "måneders løn", all = FALSE)
-  expect_match(highlight(n_factors = 4), "4 af de kendte tegn", all = FALSE)
+  expect_match(highlight(n_factors = 4), "4 af de kendte faresignaler", all = FALSE)
 })
 
 # The column name went in as an argument name, matched .cell()'s own first

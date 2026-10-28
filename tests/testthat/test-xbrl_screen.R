@@ -82,6 +82,33 @@ test_that("an immaterial finding moves down a level", {
   expect_equal(s$severity[s$finding == "borrowed more than owed"], "medium")
 })
 
+# Some filers tag the five-year overview on placeholder dates that each filing
+# reuses for its own earlier years. Two filings then "state" 2001-12-30 with
+# figures for different years, and that is not a restatement.
+test_that("placeholder dates are not compared, a reopening balance is", {
+  later <- function(comparative) {
+    b <- filing(bs("Assets", comparative, "2023-12-31"), bs("Assets", 3100, "2024-12-31"),
+                bs("Assets", 200, "2001-12-30"), file = "b.xml")
+    b$period_start <- as.Date("2024-01-01"); b$period_end <- as.Date("2024-12-31")
+    b$prev_end <- as.Date("2023-12-31")
+    b
+  }
+  a <- rbind(clean("a.xml"), filing(bs("Assets", 100, "2001-12-30")))
+  s <- suppressMessages(xbrl_screen(rbind(a, later(3000)), what = "continuity"))
+  expect_false("restated" %in% s$finding)
+
+  s <- suppressMessages(xbrl_screen(rbind(a, later(2800)), what = "continuity"))
+  expect_true("restated" %in% s$finding)
+  expect_match(s$detail[s$finding == "restated"], "of 1 figures")
+})
+
+test_that("a restatement's detail is in the report's language", {
+  tr <- cvrr:::.report_words("da")
+  expect_equal(cvrr:::.detail_words("4 of 109 figures differ; largest Assets", tr),
+               "4 af 109 tal afviger; størst Assets")
+  expect_equal(cvrr:::.detail_words("x", cvrr:::.report_words("en")), "x")
+})
+
 # A figure written in kroner one year and in thousands the next.
 test_that("a figure in the other unit between filings is found", {
   a <- clean("a.xml")

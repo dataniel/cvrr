@@ -104,6 +104,14 @@ xbrl_report <- function(d, file, title = NULL, ...) {
     return(sprintf("<div class='tw'><table><thead><tr>%s</tr></thead><tbody>%s</tbody></table></div>",
                    head, paste(rows, collapse = "")))
   }
+  # A table of quartiles by ratio: each row is formatted as its ratio is -- a
+  # current ratio is a multiple, not a percentage -- and named by its label.
+  fmt_as <- function(n, i) n
+  if ("ratio" %in% names(df) && all(c("q1", "median", "q3") %in% names(df))) {
+    rn <- as.character(df$ratio)
+    fmt_as <- function(n, i) if (n %in% c("q1", "median", "q3")) rn[i] else n
+    df$ratio <- vapply(rn, function(r) lab[[r]] %||% r, "", USE.NAMES = FALSE)
+  }
   num <- vapply(df, is.numeric, logical(1))
   head <- if (header) paste0("<thead><tr>", paste0(
     "<th", ifelse(num, " class='n'", ""), ">",
@@ -111,7 +119,7 @@ xbrl_report <- function(d, file, title = NULL, ...) {
     "</tr></thead>") else ""
   rows <- vapply(seq_len(nrow(df)), function(i)
     paste0("<tr>", paste0("<td", ifelse(num, " class='n'", ""), ">",
-      vapply(names(df), function(n) .cell(df[[n]][i], n, tr), ""), "</td>", collapse = ""),
+      vapply(names(df), function(n) .cell(df[[n]][i], fmt_as(n, i), tr), ""), "</td>", collapse = ""),
       "</tr>"), "")
   sprintf("<div class='tw'><table>%s<tbody>%s</tbody></table></div>", head,
           paste(rows, collapse = ""))
@@ -167,12 +175,12 @@ xbrl_report <- function(d, file, title = NULL, ...) {
     thin_equity = "Soliditet under 15 %", two_losses = "To underskud i træk",
     shortterm_heavy = "Kortfristet gæld over halvdelen", weak_interest_cover = "Svag rentedækning",
     weak_return = "Svagt afkast mod gruppen", young = "Under fem år",
-    going_concern_factor = "Usikkerhed om fortsat drift", n_factors = "Antal tegn",
+    going_concern_factor = "Usikkerhed om fortsat drift", n_factors = "Antal faresignaler",
     gross_profit_buffer = "Buffer i bruttofortjeneste", cash_months = "Måneders løn i kassen",
     period_end = "Periode slut", check = "Kontrol", finding = "Fund", severity = "Alvor",
     share = "Andel af aktiver", detail = "Detalje", ratio = "Nøgletal",
     q1 = "1. kvartil", median = "Median", q3 = "3. kvartil", companies = "Virksomheder",
-    three_or_more = "Tre eller flere tegn", cvr = "CVR", name = "Navn",
+    three_or_more = "Tre eller flere faresignaler", cvr = "CVR", name = "Navn",
     kind = "Art", elementid = "Element", period = "Dato", value_tagged = "Tagget",
     action = "Handling")
   en <- da

@@ -180,6 +180,7 @@ xbrl_report_data <- function(x, cvr = NULL, type = NULL, peers = NULL,
     findings$finding <- .finding_words(findings$finding, tr)
     findings$check <- .value_words(findings$check, tr)
     findings$severity <- .value_words(findings$severity, tr)
+    findings$detail <- .detail_words(findings$detail, tr)
   }
 
   list(profile = profile, figures = figures, ratios = ratios,
@@ -257,6 +258,7 @@ xbrl_report_data <- function(x, cvr = NULL, type = NULL, peers = NULL,
   }
   composition <- list(class = tab(now$class), form = tab(now$form),
                       assurance = tab(now$assurance))
+  composition$assurance$value <- .value_words(composition$assurance$value, tr)
 
   q <- function(v) {
     v <- v[!is.na(v)]
@@ -375,6 +377,22 @@ print.cvrr_report_data <- function(x, ...) {
   ifelse(finding %in% names(da), da[finding], finding)
 }
 
+# A finding's detail, in the report's language. The screen writes it in its
+# own words, which are English; these are the patterns it writes them in.
+.detail_words <- function(detail, tr) {
+  if (identical(tr[["dec"]], ".") || !length(detail)) return(detail)
+  d <- detail
+  d <- sub("^(\\d+) of (\\d+) figures differ; largest ", "\\1 af \\2 tal afviger; størst ", d)
+  d <- sub(" \\(most of the filing\\)$", " (det meste af årsrapporten)", d)
+  d <- sub("^debit (.*), credit ", "debet \\1, kredit ", d)
+  d <- sub("^borrowed (.*), debt moved ", "lånt \\1, gælden ændret ", d)
+  d <- sub("^other half: ", "modposten: ", d)
+  d <- sub("^to ", "til ", d)
+  d <- sub("^material uncertainty about the company continuing$",
+           "væsentlig usikkerhed om fortsat drift", d)
+  d
+}
+
 .fmt_num <- function(v, tr, digits = 0) {
   if (length(v) == 0 || is.na(v)) return("-")
   s <- formatC(v, format = "f", digits = digits, big.mark = tr[["big"]],
@@ -412,11 +430,11 @@ print.cvrr_report_data <- function(x, ...) {
     h_cash = "Likviderne dækker %s måneders løn.",
     h_peer_eq = "Soliditeten er blandt de laveste 10 % i sammenligningsgruppen.",
     h_peer_ret = "Afkastet af driften er blandt de laveste 10 % i sammenligningsgruppen.",
-    h_factors = "Selskabet har %d af de kendte tegn på finansiel sårbarhed.",
+    h_factors = "Selskabet har %d af de kendte faresignaler for finansiel sårbarhed.",
     h_none = "Intet i regnskabet skiller sig ud.",
     p_count = "%d virksomheder og %d regnskaber, %s-%s.",
     p_negeq = "%d af %d virksomheder (%s) har negativ egenkapital i %s.",
-    p_three = "%d virksomheder (%s) har tre eller flere tegn på sårbarhed i det seneste år.",
+    p_three = "%d virksomheder (%s) har tre eller flere faresignaler i det seneste år.",
     p_eq_trend = "Den typiske soliditet gik fra %s i %s til %s i %s.",
     p_opinion = "%d regnskaber har en revisorkonklusion med forbehold, afkræftende eller ingen.",
     p_findings = "%d regnskaber har et alvorligt fund i kontrollen af tallene.")
