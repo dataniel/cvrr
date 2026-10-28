@@ -111,9 +111,13 @@ whole is ambiguous.
 The search is tested against an exhaustive one, every assignment
 enumerated, on random cases from kroner to a group's hundred billion. That
 test found a precision fault that turned unique answers ambiguous on large
-amounts, and the fault is fixed. The taxonomy also publishes these weights
-in its calculation linkbase. The package does not read the linkbase yet, so
-the two routes have not been compared.
+amounts, and the fault is fixed. There is no official answer to check it
+against. In 13 versions of the Danish taxonomy, 2010-2025, the only
+calculation linkbase is a 2020 income statement for one kind of education
+institution. Erhvervsstyrelsen publishes no weights for the ordinary
+statements. What the taxonomy does publish is each line's debit or credit
+marking, and on 8,633 solved income statement lines the recovered sign
+agrees with it 99.8% of the time.
 
 ## The taxonomy is where the meaning lives
 

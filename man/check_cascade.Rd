@@ -47,9 +47,8 @@ out. Default \code{1L}, since a step holds few items.}
 take it from what the filing claims about its own precision. Default \code{1}.
 See the section below.}
 
-\item{retry}{Give a statement the first pass could not settle a second
-reading, in which a line a step did not need is offered to the step below
-instead of being consumed. Only applied where the strict pass failed, so a
+\item{retry}{Offer a statement the strict pass could not settle the looser
+readings described below. Only applied where the strict pass failed, so a
 statement that already reconciled is untouched. Default \code{TRUE}.}
 }
 \value{
@@ -60,7 +59,8 @@ started from. A step a filing does not have is \code{"not reported"}; a step
 whose subtotal is given without components is \code{"given"}, \code{"unchanged"}
 where the subtotal carried in equals this one so nothing happened between
 them, and \code{"unexplained"} where they differ with no line tagged to say
-why.
+why. \code{pass} is \code{NA} for a statement the strict reading settled, and
+otherwise names the looser reading that did.
 }
 \description{
 An income statement is not a sum but a cascade: trading gives a gross
@@ -80,11 +80,32 @@ whose cascade leaves a step unsolved or unexplained at a one-krone
 tolerance, half report at \code{-3} or coarser, against 6\% of the 3,857 that
 settle every step.
 
-It still buys very little, and that is worth saying. Over 4,304 filings a
-tolerance read off each one recovers 16 of the 57 unsolved steps -- out of
-close to 11,000 that already solved -- and turns one solved step ambiguous.
-The default stays at one krone. This is here because it is the right
-question to ask of a filing, not because asking it paid.
+As the default it does harm. Run on every statement in a 4,304-filing
+corpus, a tolerance read off the filing settles 17 more steps and unsettles
+16: with more combinations fitting, the first step no longer pins the entry
+concept, and steps that were verified become \code{"given"}. So the default
+stays at one krone, and the filing's own precision is offered as a fallback
+(see the next section).
+}
+
+\section{Looser readings, only where the strict one fails}{
+
+A statement the strict reading leaves unsettled is offered three more, in
+order. Each is kept only if it settles more steps and every step that was
+unique stays unique, and \code{pass} names the reading that settled it:
+\itemize{
+\item \code{"retried"} -- a line a step did not need goes to the step below rather
+than being consumed.
+\item \code{"decimals"} -- the filing's own precision as the tolerance.
+\item \code{"two left out"} -- that, with one more line allowed to fall out of a
+step.
+}
+
+Over the corpus the strict reading settles every step in 4,234 filings, and
+the three readings take that to 4,257, with no unique step lost. The
+solutions with two lines left out take the taxonomy's debit/credit direction
+on all 72 of the lines they use, but leaving lines out is still the weakest
+of the claims, and \code{pass} lets it be filtered out.
 }
 
 \section{Why step by step}{

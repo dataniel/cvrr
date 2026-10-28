@@ -238,6 +238,25 @@ test_that("check_cascade() reconciles each step to its own subtotal", {
 # The taxonomy no longer has to be handed over -- the packaged tables are the
 # default -- but a filing they do not cover still yields nothing rather than
 # steps guessed from the data.
+# A result reported to the nearest thousand is 400 kroner off a sum in kroner.
+# The strict reading calls the tail unsolved; the filing's own precision, which
+# is offered only because the strict reading failed, settles it, and says so.
+test_that("check_cascade() falls back to the filing's precision, and says so", {
+  inc <- income()
+  inc$value <- inc$value * 1000
+  inc$value[inc$elementid == "ProfitLoss"] <- 250400
+  inc$decimals <- "0"
+  inc$decimals[inc$elementid %in% c("TaxExpense", "ProfitLoss")] <- "-3"
+
+  strict <- check_cascade(inc, read_taxonomy(tax_zip), statement = NULL,
+                          retry = FALSE)
+  expect_equal(strict$status[strict$step == "tail"], "unsolved")
+
+  cc <- check_cascade(inc, read_taxonomy(tax_zip), statement = NULL)
+  expect_equal(cc$status, c("unique", "unique"))
+  expect_equal(unique(cc$pass), "decimals")
+})
+
 test_that("check_cascade() without a taxonomy it can resolve returns nothing", {
   expect_equal(nrow(check_cascade(income(), statement = NULL)), 0L)
 })

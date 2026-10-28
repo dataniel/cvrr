@@ -88,6 +88,19 @@ discards two. \code{status} and \code{n_solutions} describe the group \emph{afte
 preference is applied.
 }
 
+\section{Why a search, and not the taxonomy's weights}{
+
+XBRL has a place for these weights: the calculation linkbase. The Danish
+taxonomy does not fill it. Across its 13 versions from 2010 to 2025 the one
+calculation linkbase is a 2020 income statement for one kind of education
+institution, so for an ordinary annual report the arithmetic is the only
+route to a sign. The taxonomy does mark every line debit or credit. Over
+8,633 income statement lines solved in a 4,304-filing corpus and reported
+positive, the sign found here agrees with that marking for 99.8\%, and the
+rest are elements whose direction varies by nature, such as changes in
+inventories.
+}
+
 \examples{
 items <- data.frame(
   label = c("revenue", "costs", "depreciation", "total"),
@@ -97,7 +110,6 @@ find_signs(items, label, value, total_label = "total")
 
 }
 \seealso{
-\code{\link[=read_xbrl]{read_xbrl()}}. The XBRL taxonomy publishes these weights in its
-calculation linkbase, which would make this search an independent check
-on them. The package does not read the linkbase yet.
+\code{\link[=read_xbrl]{read_xbrl()}}, and \code{\link[=check_cascade]{check_cascade()}}, which uses the debit/credit
+marking to break ties.
 }

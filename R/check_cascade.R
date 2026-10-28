@@ -16,11 +16,29 @@
 #' tolerance, half report at `-3` or coarser, against 6% of the 3,857 that
 #' settle every step.
 #'
-#' It still buys very little, and that is worth saying. Over 4,304 filings a
-#' tolerance read off each one recovers 16 of the 57 unsolved steps -- out of
-#' close to 11,000 that already solved -- and turns one solved step ambiguous.
-#' The default stays at one krone. This is here because it is the right
-#' question to ask of a filing, not because asking it paid.
+#' As the default it does harm. Run on every statement in a 4,304-filing
+#' corpus, a tolerance read off the filing settles 17 more steps and unsettles
+#' 16: with more combinations fitting, the first step no longer pins the entry
+#' concept, and steps that were verified become `"given"`. So the default
+#' stays at one krone, and the filing's own precision is offered as a fallback
+#' (see the next section).
+#'
+#' @section Looser readings, only where the strict one fails:
+#' A statement the strict reading leaves unsettled is offered three more, in
+#' order. Each is kept only if it settles more steps and every step that was
+#' unique stays unique, and `pass` names the reading that settled it:
+#'
+#' * `"retried"` -- a line a step did not need goes to the step below rather
+#'   than being consumed.
+#' * `"decimals"` -- the filing's own precision as the tolerance.
+#' * `"two left out"` -- that, with one more line allowed to fall out of a
+#'   step.
+#'
+#' Over the corpus the strict reading settles every step in 4,234 filings, and
+#' the three readings take that to 4,257, with no unique step lost. The
+#' solutions with two lines left out take the taxonomy's debit/credit direction
+#' on all 72 of the lines they use, but leaving lines out is still the weakest
+#' of the claims, and `pass` lets it be filtered out.
 #'
 #' @section Why step by step:
 #' Reconciling the whole statement at once fails in both directions. It fails
@@ -66,9 +84,8 @@
 #'   uses whichever of `file`, `basis` and `period` the table has -- `file`
 #'   because read_xbrl() returns many filings at once, and without it two
 #'   companies with the same balance sheet date are checked as one; add the company identifier for a panel.
-#' @param retry Give a statement the first pass could not settle a second
-#'   reading, in which a line a step did not need is offered to the step below
-#'   instead of being consumed. Only applied where the strict pass failed, so a
+#' @param retry Offer a statement the strict pass could not settle the looser
+#'   readings described below. Only applied where the strict pass failed, so a
 #'   statement that already reconciled is untouched. Default `TRUE`.
 #' @param max_zeros Passed to [find_signs()]: how many items a step may leave
 #'   out. Default `1L`, since a step holds few items.
@@ -87,7 +104,8 @@
 #'   whose subtotal is given without components is `"given"`, `"unchanged"`
 #'   where the subtotal carried in equals this one so nothing happened between
 #'   them, and `"unexplained"` where they differ with no line tagged to say
-#'   why.
+#'   why. `pass` is `NA` for a statement the strict reading settled, and
+#'   otherwise names the looser reading that did.
 #'
 #' @examples
 #' \dontrun{
@@ -180,10 +198,36 @@ check_cascade <- function(x, taxonomy = NULL, statement = "income", by = NULL,
     unsettled <- function(z)
       sum(z$status %in% c("unsolved", "ambiguous", "unexplained"))
     if (unsettled(out) == 0) return(out)
-    again <- .cascade_one(g, cache[[ref]], by, max_zeros, tol, TRUE)
-    if (unsettled(again) >= unsettled(out)) return(out)
-    again$pass <- "retried"
-    again
+
+    # Each looser reading is offered only to a statement the stricter ones
+    # left unsettled, and kept only if it settles more and costs nothing: a
+    # step that was unique stays unique. Run on everything instead, a
+    # tolerance read off the filing settles 17 more steps across the corpus
+    # and turns 16 settled ones into "given" -- with more combinations
+    # fitting, the first step no longer pins the entry concept. Offered only
+    # here, it settles them and loses none.
+    better <- function(again, now) {
+      if (unsettled(again) >= unsettled(now)) return(FALSE)
+      was <- now$step[now$status == "unique"]
+      all(was %in% again$step[again$status == "unique"])
+    }
+    readings <- list(
+      list(pass = "retried",  tol = tol, max_zeros = max_zeros, defer = TRUE),
+      list(pass = "decimals", tol = "decimals", max_zeros = max_zeros, defer = TRUE),
+      list(pass = "two left out", tol = "decimals", max_zeros = max_zeros + 1L,
+           defer = TRUE))
+    # Asked for the filing's own precision already, there is no looser
+    # tolerance to offer, only the extra line left out.
+    if (identical(tol, "decimals")) readings <- readings[-2]
+    for (rd in readings) {
+      if (unsettled(out) == 0) break
+      again <- .cascade_one(g, cache[[ref]], by, rd$max_zeros, rd$tol, rd$defer)
+      if (better(again, out)) {
+        again$pass <- rd$pass
+        out <- again
+      }
+    }
+    out
   })
   tibble::as_tibble(data.table::rbindlist(rows, fill = TRUE))
 }

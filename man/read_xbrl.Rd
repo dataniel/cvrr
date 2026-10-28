@@ -42,8 +42,9 @@ An XBRL instance holds facts, contexts and units -- and no human-readable
 text at all. That is by design: the meaning of every element lives in the
 \emph{taxonomy} the filing points to with a single \code{link:schemaRef}. Labels, the
 statement hierarchy and the debit/credit balance are published there, and
-\code{\link[=add_taxonomy]{add_taxonomy()}} is what joins them on. The calculation weights are
-published there too, but they are not read.
+\code{\link[=add_taxonomy]{add_taxonomy()}} is what joins them on. XBRL also has a place for
+calculation weights, and the Danish taxonomy leaves it empty for the
+ordinary statements -- see \code{\link[=find_signs]{find_signs()}}.
 
 Because the taxonomy is keyed by qualified name, the element's namespace is
 returned alongside its local name. A Danish filing binds six or more
