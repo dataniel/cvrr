@@ -76,6 +76,7 @@ warning is issued if the response holds as many hits as the query's
 [`cvr_download()`](https://dataniel.github.io/cvrr/reference/cvr_download.md)
 
 Other cvr:
+[`clean_cvr()`](https://dataniel.github.io/cvrr/reference/clean_cvr.md),
 [`cvr_download()`](https://dataniel.github.io/cvrr/reference/cvr_download.md),
 [`cvr_hits()`](https://dataniel.github.io/cvrr/reference/cvr_hits.md),
 [`cvr_query()`](https://dataniel.github.io/cvrr/reference/cvr_query.md)

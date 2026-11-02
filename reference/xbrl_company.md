@@ -47,15 +47,28 @@ itself. A field it does not state is `NA`.
 - **Where:** `street`, `postcode`, `city`, `country`,
   `registered_office`.
 
-- **Size and class:** `reporting_class`, `class`, `class_c_elements`,
-  `employees`, `assets_not_owned`, `currency`.
+- **Size and class:** `reporting_class`, `class`, `micro`,
+  `class_c_elements`, `employees`, `assets_not_owned`, `currency`.
+
+- **Group:** `group_accounts` (the filing has consolidated figures) and
+  `in_group` (the company is part of a group: balances with group
+  enterprises, shares in them, a subsidiary's exemption under section
+  78a, or a note on group accounts).
 
 - **The report:** `report_type`, `general_meeting`, `approved`,
   `signature_place`, `submitter`, `submitter_cvr`, `xbrl_tool`,
   `policies_unchanged`.
 
-- **The audit:** `auditor_assistance`, `audit_firm`, `audit_firm_cvr`,
-  `opinion`, `auditor_signed`, `audit_exempt`.
+- **The audit:** `auditor_assistance` as written and `assurance` as one
+  of `"audit"`, `"extended review"`, `"review"`, `"compilation"` or
+  `"none"`; `audit_firm`, `audit_firm_cvr`; `opinion` as written and
+  `opinion_kind` as `"clean"`, `"qualified"`, `"adverse"` or
+  `"disclaimer"`; `going_concern`, whether the auditor or the filing
+  reports a material uncertainty about the company continuing;
+  `auditor_signed`, `audit_exempt`.
+
+Branch of industry is not in a filing, only in the CVR register. Join it
+on `cvr` from a register extract of your own.
 
 - With `prose`: `activity`, `activity_source`, `development`,
   `development_source`, `events_after`, `expected_development`,
@@ -169,6 +182,7 @@ Other taxonomy:
 [`add_taxonomy()`](https://dataniel.github.io/cvrr/reference/add_taxonomy.md),
 [`check_breakdown()`](https://dataniel.github.io/cvrr/reference/check_breakdown.md),
 [`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md),
+[`check_cashflow()`](https://dataniel.github.io/cvrr/reference/check_cashflow.md),
 [`check_continuity()`](https://dataniel.github.io/cvrr/reference/check_continuity.md),
 [`check_inclusion()`](https://dataniel.github.io/cvrr/reference/check_inclusion.md),
 [`check_movement()`](https://dataniel.github.io/cvrr/reference/check_movement.md),
@@ -179,8 +193,16 @@ Other taxonomy:
 [`xbrl_lines()`](https://dataniel.github.io/cvrr/reference/xbrl_lines.md),
 [`xbrl_movements()`](https://dataniel.github.io/cvrr/reference/xbrl_movements.md),
 [`xbrl_note_tables()`](https://dataniel.github.io/cvrr/reference/xbrl_note_tables.md),
+[`xbrl_panel()`](https://dataniel.github.io/cvrr/reference/xbrl_panel.md),
 [`xbrl_period()`](https://dataniel.github.io/cvrr/reference/xbrl_period.md),
-[`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md)
+[`xbrl_ratios()`](https://dataniel.github.io/cvrr/reference/xbrl_ratios.md),
+[`xbrl_report()`](https://dataniel.github.io/cvrr/reference/xbrl_report.md),
+[`xbrl_report_data()`](https://dataniel.github.io/cvrr/reference/xbrl_report_data.md),
+[`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md),
+[`xbrl_robustness()`](https://dataniel.github.io/cvrr/reference/xbrl_robustness.md),
+[`xbrl_screen()`](https://dataniel.github.io/cvrr/reference/xbrl_screen.md),
+[`xbrl_standardise()`](https://dataniel.github.io/cvrr/reference/xbrl_standardise.md),
+[`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md)
 
 ## Examples
 

@@ -18,7 +18,9 @@ cvr_query(cvr, enddate_from, enddate_to, size = 2999)
 - cvr:
 
   A character or numeric vector of CVR numbers (8 digits each). At most
-  1000 per query, so split larger sets into batches.
+  1000 per query, so split larger sets into batches. Use
+  [`clean_cvr()`](https://dataniel.github.io/cvrr/reference/clean_cvr.md)
+  first for numbers with a `DK` prefix, spaces or dashes.
 
 - enddate_from, enddate_to:
 
@@ -55,6 +57,7 @@ The full pipeline is:
 [`cvr_download()`](https://dataniel.github.io/cvrr/reference/cvr_download.md)
 
 Other cvr:
+[`clean_cvr()`](https://dataniel.github.io/cvrr/reference/clean_cvr.md),
 [`cvr_download()`](https://dataniel.github.io/cvrr/reference/cvr_download.md),
 [`cvr_hits()`](https://dataniel.github.io/cvrr/reference/cvr_hits.md),
 [`cvr_search()`](https://dataniel.github.io/cvrr/reference/cvr_search.md)

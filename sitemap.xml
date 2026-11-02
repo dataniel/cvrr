@@ -9,10 +9,12 @@
 <url><loc>https://dataniel.github.io/cvrr/reference/add_taxonomy.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/check_breakdown.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/check_cascade.html</loc></url>
+<url><loc>https://dataniel.github.io/cvrr/reference/check_cashflow.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/check_continuity.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/check_inclusion.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/check_movement.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/check_statement.html</loc></url>
+<url><loc>https://dataniel.github.io/cvrr/reference/clean_cvr.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/cvr_download.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/cvr_hits.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/cvr_query.html</loc></url>
@@ -29,7 +31,15 @@
 <url><loc>https://dataniel.github.io/cvrr/reference/xbrl_lines.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/xbrl_movements.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/xbrl_note_tables.html</loc></url>
+<url><loc>https://dataniel.github.io/cvrr/reference/xbrl_panel.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/xbrl_period.html</loc></url>
+<url><loc>https://dataniel.github.io/cvrr/reference/xbrl_ratios.html</loc></url>
+<url><loc>https://dataniel.github.io/cvrr/reference/xbrl_report.html</loc></url>
+<url><loc>https://dataniel.github.io/cvrr/reference/xbrl_report_data.html</loc></url>
 <url><loc>https://dataniel.github.io/cvrr/reference/xbrl_resolve.html</loc></url>
+<url><loc>https://dataniel.github.io/cvrr/reference/xbrl_robustness.html</loc></url>
+<url><loc>https://dataniel.github.io/cvrr/reference/xbrl_screen.html</loc></url>
+<url><loc>https://dataniel.github.io/cvrr/reference/xbrl_standardise.html</loc></url>
+<url><loc>https://dataniel.github.io/cvrr/reference/xbrl_validate.html</loc></url>
 </urlset>
 

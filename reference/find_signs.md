@@ -60,7 +60,10 @@ find_signs(
 - tol:
 
   Absolute tolerance when comparing a signed sum to the target. Default
-  `1e-6`. Filings that round to whole thousands may need more.
+  `1e-6`. Filings that round to whole thousands may need more. A
+  tolerance finer than floating point can resolve at the size of the
+  values is raised to that resolution – about 0.001 on a total of a
+  hundred billion.
 
 ## Value
 
@@ -105,12 +108,24 @@ a solution that uses every reported line item is more plausible than one
 that discards two. `status` and `n_solutions` describe the group *after*
 that preference is applied.
 
+## Why a search, and not the taxonomy's weights
+
+XBRL has a place for these weights: the calculation linkbase. The Danish
+taxonomy does not fill it. Across its 13 versions from 2010 to 2025 the
+one calculation linkbase is a 2020 income statement for one kind of
+education institution, so for an ordinary annual report the arithmetic
+is the only route to a sign. The taxonomy does mark every line debit or
+credit. Over 8,633 income statement lines solved in a 4,304-filing
+corpus and reported positive, the sign found here agrees with that
+marking for 99.8%, and the rest are elements whose direction varies by
+nature, such as changes in inventories.
+
 ## See also
 
-[`read_xbrl()`](https://dataniel.github.io/cvrr/reference/read_xbrl.md).
-The XBRL taxonomy publishes these weights in its calculation linkbase,
-which makes this search an independent check on them rather than the
-only route to a sign.
+[`read_xbrl()`](https://dataniel.github.io/cvrr/reference/read_xbrl.md),
+and
+[`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md),
+which uses the debit/credit marking to break ties.
 
 ## Examples
 

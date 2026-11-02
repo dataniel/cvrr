@@ -42,6 +42,19 @@ Everything before
 [`cvr_search()`](https://dataniel.github.io/cvrr/reference/cvr_search.md)
 is local; that line is the first real API call.
 
+CVR numbers from a spreadsheet or another register often carry a `DK`
+prefix, spaces or dashes, and
+[`cvr_query()`](https://dataniel.github.io/cvrr/reference/cvr_query.md)
+accepts only 8 digits.
+[`clean_cvr()`](https://dataniel.github.io/cvrr/reference/clean_cvr.md)
+brings them to that form without inventing digits, so a seven-digit
+number stays visibly wrong:
+
+``` r
+clean_cvr(c("DK12345678", "12 34 56 78", "1234567"))
+#> [1] "12345678" "12345678" "1234567"
+```
+
 ## Greenlandic companies
 
 Greenland’s own business register (GER) was folded into CVR on 3 January
@@ -186,6 +199,7 @@ a$audit             # who audited it, who filed it, with what tool
 a$checks            # whether any of it adds up
 a$income_statement  # lines, in statement order
 a$balance           # lines, with the ones the filer left out derived
+a$cash_flow         # the cash flow statement, as reported
 a$movements         # the fixed asset note, movement by movement
 a$prose             # what management wrote
 ```
@@ -193,7 +207,7 @@ a$prose             # what management wrote
 Every table opens with the same key — `cvr`, `name`, `period_start`,
 `period_end` — so moving between them needs no looking, and every table
 ends with `file`, so a figure can be traced back to the document it came
-from. The two statements carry `reconciled` on every row, so filtering
+from. The three statements carry `reconciled` on every row, so filtering
 to the lines that add up needs no join; `a$checks` gathers the
 per-filing verdicts, and they are several columns rather than one
 because a filing can have a balance sheet that closes and an income
@@ -237,9 +251,86 @@ reaches the statements
 does not return:
 
 ``` r
-xbrl_lines(x, "cashflow")
 xbrl_lines(x, "equity")
 ```
+
+## Validate once
+
+Everything from here on needs the same work done first: the tagging put
+right, the statements checked and solved.
+[`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md)
+does it once and attaches it to the facts, so the screen, the panel and
+every report read it instead of repeating it:
+
+``` r
+v <- xbrl_validate(x)
+```
+
+`v` is still the facts, one row per fact. A panel is a view cut from
+them, and it would drop the notes, the dimensions and where each figure
+came from. Keep `v` and cut what is needed. A subset of whole filings
+keeps the work, and a filing whose figures have changed since is done
+again rather than read from stale work.
+
+## A panel to analyse
+
+The tables above are the filings as they are presented. For analysis the
+same figures are wanted as variables: one row per company and year.
+[`xbrl_panel()`](https://dataniel.github.io/cvrr/reference/xbrl_panel.md)
+builds that from the statements, after the tagging has been put right:
+
+``` r
+p <- xbrl_panel(v)
+p[c("cvr", "period_end", "gross_profit", "operating_profit", "equity",
+    "balance_reconciled")]
+```
+
+Costs are positive amounts, a loss is negative, and tax is the result
+before tax less the result after it, so its sign is right whatever the
+filer wrote. `net_financials` is found the same way and is the complete
+figure; `finance_income` and `finance_expenses` are only the lines with
+those names. A figure the filing does not report stays `NA`. Each row
+carries the company’s class, form, assurance and group, and three
+verdicts on whether its statements add up. Excluding a row on them is
+left to the analysis.
+
+Two functions read the panel.
+[`xbrl_ratios()`](https://dataniel.github.io/cvrr/reference/xbrl_ratios.md)
+adds the published ratios, the change from the previous annual report,
+and the median and percentile among comparable companies.
+[`xbrl_robustness()`](https://dataniel.github.io/cvrr/reference/xbrl_robustness.md)
+adds the signs of vulnerability from Danmarks Nationalbank’s bankruptcy
+model, with capital lost and going concern added, and two buffers:
+
+``` r
+r <- xbrl_robustness(p)
+attr(r, "validation")    # each factor against the companies that stopped filing
+```
+
+Comparable means the same accounting class unless told otherwise. A
+branch of industry is better and is not in a filing; join it on `cvr`
+and pass its column as `group`.
+
+### A report
+
+The whole chain ends in a page.
+[`xbrl_report()`](https://dataniel.github.io/cvrr/reference/xbrl_report.md)
+writes one HTML file, and which report it is follows from the filings
+given: one company in one year, one company over time, many companies in
+one year, or many over several:
+
+``` r
+xbrl_report(v, "company.html", cvr = "12345678", peers = p)
+xbrl_report(v, "all.html")
+```
+
+It opens with what matters most, as sentences. Each sentence is a rule
+with a threshold: the auditor’s opinion, a loss for the second year
+running, an equity ratio that fell five points or more, cash that covers
+less than a month’s wages, a place in the bottom tenth among peers. The
+tables follow.
+[`xbrl_report_data()`](https://dataniel.github.io/cvrr/reference/xbrl_report_data.md)
+returns the same content as data, so a report of one’s own can use it.
 
 ## Signs
 
@@ -354,6 +445,84 @@ signs. That is what
 [`find_signs()`](https://dataniel.github.io/cvrr/reference/find_signs.md)
 is for, and the two are independent: one reads a published file, the
 other only adds up the numbers in front of it.
+
+### Screening a pile of filings
+
+Each check answers one question about one statement.
+[`xbrl_screen()`](https://dataniel.github.io/cvrr/reference/xbrl_screen.md)
+asks all of them of every filing and returns the answers worth reading,
+one row per finding, most serious and largest first:
+
+``` r
+s <- xbrl_screen(x)
+s[c("cvr", "name", "period_end", "check", "finding", "share", "severity")]
+```
+
+`share` is the amount against the filing’s total assets, and a finding
+under 1% of them moves down a level, so the list is ordered by what
+matters rather than by kroner.
+
+The tagging is put right first. A filing now and then tags a line in
+thousands where it is in kroner, most often in its comparative column,
+and screened as it stands that outranks every real finding. Over the
+4,304 filings of 2020-2024 it was 41 of the 54 serious findings.
+[`xbrl_screen()`](https://dataniel.github.io/cvrr/reference/xbrl_screen.md)
+therefore runs
+[`xbrl_standardise()`](https://dataniel.github.io/cvrr/reference/xbrl_standardise.md)
+before it looks. A comparative is corrected where the filing disagrees
+with itself: its own year and the earlier filing agree, and the
+comparative is a thousand off. A cash flow sign is reversed where its
+activity adds up only that way. A contrary sign the activity adds up
+with stays, because then it means something. Greenland Airports’ sale of
+a company reported negative is one of those. Everything else is left as
+tagged and listed in `attr(s, "technical")`, apart from the findings:
+
+``` r
+attr(s, "technical")    # 147 units and 17 signs corrected, 49 undecided
+```
+
+What is left is the accounts and what the auditor said about them. 618
+filings have a finding. The serious ones are 81 auditor’s opinions that
+are qualified, adverse or missing, and 13 cash flow statements that do
+not add up. Each row carries the filing’s class, legal form, level of
+assurance and whether it belongs to a group, so a finding can be set
+beside its kind. A unit error shows only when a filing is set beside the
+one before it, because everything inside a single filing is consistent,
+so pass several years.
+
+### The cash flow statement, against the rest
+
+A cash flow statement can be wrong in a way its own arithmetic never
+shows. Move an amount from one activity to another and every total still
+adds up. That is what happened in Greenland Airports’ 2025 group
+accounts (CVR 12859724). A state grant of DKK 400 million was reported
+as “Optagelse af langfristet gæld”, and 364 million of it was taken to
+income and then put under investing as an outflow, tagged in the XBRL as
+`SaleOfOtherCompany`.
+[`check_cashflow()`](https://dataniel.github.io/cvrr/reference/check_cashflow.md)
+holds the statement against the balance sheet, the income statement and
+the fixed asset note:
+
+``` r
+x  <- read_xbrl("gai")   # the group's filings, from cvr_download()
+cf <- check_cashflow(x)
+cf[cf$check %in% c("activities", "rollforward", "cash vs balance",
+                   "debt vs balance"),
+   c("check", "reported", "expected", "residual", "offset_by", "verdict")]
+#>   check              reported    expected   residual offset_by                     verdict
+#>   activities       -298706000  -298706000          0 <NA>                          agrees
+#>   rollforward        65251000    65251000          0 <NA>                          agrees
+#>   cash vs balance    65251000    65251000          0 <NA>                          agrees
+#>   debt vs balance  1157390000   793390000  364000000 investing: SaleOfOtherCompany borrowed more than owed
+```
+
+Every internal check passes. The borrowing does not appear in the
+balance sheet, and `offset_by` names the line in investing that takes
+the same amount back out. A reclassification has to leave a gap in two
+places, equal and opposite, and that pair is what separates it from the
+ordinary reasons debt and cash part company. Across the 328 Danish
+filings in the corpus that tag a cash flow statement, that pairing with
+borrowing the balance sheet does not owe turns up nowhere.
 
 ### Movements through the year
 

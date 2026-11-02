@@ -42,6 +42,7 @@ vector keeps no record of which file a value came from.
 [`cvr_download()`](https://dataniel.github.io/cvrr/reference/cvr_download.md)
 
 Other cvr:
+[`clean_cvr()`](https://dataniel.github.io/cvrr/reference/clean_cvr.md),
 [`cvr_download()`](https://dataniel.github.io/cvrr/reference/cvr_download.md),
 [`cvr_query()`](https://dataniel.github.io/cvrr/reference/cvr_query.md),
 [`cvr_search()`](https://dataniel.github.io/cvrr/reference/cvr_search.md)

@@ -73,9 +73,8 @@ check_cascade(
 
 - retry:
 
-  Give a statement the first pass could not settle a second reading, in
-  which a line a step did not need is offered to the step below instead
-  of being consumed. Only applied where the strict pass failed, so a
+  Offer a statement the strict pass could not settle the looser readings
+  described below. Only applied where the strict pass failed, so a
   statement that already reconciled is untouched. Default `TRUE`.
 
 ## Value
@@ -88,7 +87,9 @@ and `entry`, the income concept the filing started from. A step a filing
 does not have is `"not reported"`; a step whose subtotal is given
 without components is `"given"`, `"unchanged"` where the subtotal
 carried in equals this one so nothing happened between them, and
-`"unexplained"` where they differ with no line tagged to say why.
+`"unexplained"` where they differ with no line tagged to say why. `pass`
+is `NA` for a statement the strict reading settled, and otherwise names
+the looser reading that did.
 
 ## Judging a statement by its own precision
 
@@ -102,11 +103,32 @@ whose cascade leaves a step unsolved or unexplained at a one-krone
 tolerance, half report at `-3` or coarser, against 6% of the 3,857 that
 settle every step.
 
-It still buys very little, and that is worth saying. Over 4,304 filings
-a tolerance read off each one recovers 16 of the 57 unsolved steps – out
-of close to 11,000 that already solved – and turns one solved step
-ambiguous. The default stays at one krone. This is here because it is
-the right question to ask of a filing, not because asking it paid.
+As the default it does harm. Run on every statement in a 4,304-filing
+corpus, a tolerance read off the filing settles 17 more steps and
+unsettles 16: with more combinations fitting, the first step no longer
+pins the entry concept, and steps that were verified become `"given"`.
+So the default stays at one krone, and the filing's own precision is
+offered as a fallback (see the next section).
+
+## Looser readings, only where the strict one fails
+
+A statement the strict reading leaves unsettled is offered three more,
+in order. Each is kept only if it settles more steps and every step that
+was unique stays unique, and `pass` names the reading that settled it:
+
+- `"retried"` – a line a step did not need goes to the step below rather
+  than being consumed.
+
+- `"decimals"` – the filing's own precision as the tolerance.
+
+- `"two left out"` – that, with one more line allowed to fall out of a
+  step.
+
+Over the corpus the strict reading settles every step in 4,234 filings,
+and the three readings take that to 4,257, with no unique step lost. The
+solutions with two lines left out take the taxonomy's debit/credit
+direction on all 72 of the lines they use, but leaving lines out is
+still the weakest of the claims, and `pass` lets it be filtered out.
 
 ## Why step by step
 
@@ -152,6 +174,7 @@ for the balance sheet, whose lines are a plain sum.
 Other taxonomy:
 [`add_taxonomy()`](https://dataniel.github.io/cvrr/reference/add_taxonomy.md),
 [`check_breakdown()`](https://dataniel.github.io/cvrr/reference/check_breakdown.md),
+[`check_cashflow()`](https://dataniel.github.io/cvrr/reference/check_cashflow.md),
 [`check_continuity()`](https://dataniel.github.io/cvrr/reference/check_continuity.md),
 [`check_inclusion()`](https://dataniel.github.io/cvrr/reference/check_inclusion.md),
 [`check_movement()`](https://dataniel.github.io/cvrr/reference/check_movement.md),
@@ -163,8 +186,16 @@ Other taxonomy:
 [`xbrl_lines()`](https://dataniel.github.io/cvrr/reference/xbrl_lines.md),
 [`xbrl_movements()`](https://dataniel.github.io/cvrr/reference/xbrl_movements.md),
 [`xbrl_note_tables()`](https://dataniel.github.io/cvrr/reference/xbrl_note_tables.md),
+[`xbrl_panel()`](https://dataniel.github.io/cvrr/reference/xbrl_panel.md),
 [`xbrl_period()`](https://dataniel.github.io/cvrr/reference/xbrl_period.md),
-[`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md)
+[`xbrl_ratios()`](https://dataniel.github.io/cvrr/reference/xbrl_ratios.md),
+[`xbrl_report()`](https://dataniel.github.io/cvrr/reference/xbrl_report.md),
+[`xbrl_report_data()`](https://dataniel.github.io/cvrr/reference/xbrl_report_data.md),
+[`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md),
+[`xbrl_robustness()`](https://dataniel.github.io/cvrr/reference/xbrl_robustness.md),
+[`xbrl_screen()`](https://dataniel.github.io/cvrr/reference/xbrl_screen.md),
+[`xbrl_standardise()`](https://dataniel.github.io/cvrr/reference/xbrl_standardise.md),
+[`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md)
 
 ## Examples
 

@@ -24,7 +24,10 @@ xbrl_lines(
   A tibble from
   [`read_xbrl()`](https://dataniel.github.io/cvrr/reference/read_xbrl.md).
   The taxonomy has to be on it: the hierarchy is what names a line the
-  filing never mentioned.
+  filing never mentioned. From
+  [`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md),
+  the lines it solved are returned as they are, at the default `fill`
+  and `taxonomy`.
 
 - statement:
 
@@ -111,6 +114,7 @@ Other taxonomy:
 [`add_taxonomy()`](https://dataniel.github.io/cvrr/reference/add_taxonomy.md),
 [`check_breakdown()`](https://dataniel.github.io/cvrr/reference/check_breakdown.md),
 [`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md),
+[`check_cashflow()`](https://dataniel.github.io/cvrr/reference/check_cashflow.md),
 [`check_continuity()`](https://dataniel.github.io/cvrr/reference/check_continuity.md),
 [`check_inclusion()`](https://dataniel.github.io/cvrr/reference/check_inclusion.md),
 [`check_movement()`](https://dataniel.github.io/cvrr/reference/check_movement.md),
@@ -121,8 +125,16 @@ Other taxonomy:
 [`xbrl_fill()`](https://dataniel.github.io/cvrr/reference/xbrl_fill.md),
 [`xbrl_movements()`](https://dataniel.github.io/cvrr/reference/xbrl_movements.md),
 [`xbrl_note_tables()`](https://dataniel.github.io/cvrr/reference/xbrl_note_tables.md),
+[`xbrl_panel()`](https://dataniel.github.io/cvrr/reference/xbrl_panel.md),
 [`xbrl_period()`](https://dataniel.github.io/cvrr/reference/xbrl_period.md),
-[`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md)
+[`xbrl_ratios()`](https://dataniel.github.io/cvrr/reference/xbrl_ratios.md),
+[`xbrl_report()`](https://dataniel.github.io/cvrr/reference/xbrl_report.md),
+[`xbrl_report_data()`](https://dataniel.github.io/cvrr/reference/xbrl_report_data.md),
+[`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md),
+[`xbrl_robustness()`](https://dataniel.github.io/cvrr/reference/xbrl_robustness.md),
+[`xbrl_screen()`](https://dataniel.github.io/cvrr/reference/xbrl_screen.md),
+[`xbrl_standardise()`](https://dataniel.github.io/cvrr/reference/xbrl_standardise.md),
+[`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md)
 
 ## Examples
 

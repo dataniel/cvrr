@@ -120,6 +120,13 @@ A caller who will only accept solved arithmetic filters on
 `sign_source`; one who wants the note as the filer wrote it reads
 `tagged`.
 
+The check was tested by planting errors in blocks that rolled forward,
+one movement at a time, in 500 filings. A figure off by 9,000, or
+written in kroner where the note is in thousands, stopped the block
+rolling forward in 129 of 129 blocks each time. The same movement with
+its sign flipped was absorbed in 130 of 130. That is what solving the
+signs is for, because filers write a disposal either way.
+
 ## What is derived, and what is checked
 
 `source` is `"reported"`, `"derived: layers"`, or
@@ -194,6 +201,7 @@ Other taxonomy:
 [`add_taxonomy()`](https://dataniel.github.io/cvrr/reference/add_taxonomy.md),
 [`check_breakdown()`](https://dataniel.github.io/cvrr/reference/check_breakdown.md),
 [`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md),
+[`check_cashflow()`](https://dataniel.github.io/cvrr/reference/check_cashflow.md),
 [`check_continuity()`](https://dataniel.github.io/cvrr/reference/check_continuity.md),
 [`check_inclusion()`](https://dataniel.github.io/cvrr/reference/check_inclusion.md),
 [`check_movement()`](https://dataniel.github.io/cvrr/reference/check_movement.md),
@@ -204,8 +212,16 @@ Other taxonomy:
 [`xbrl_fill()`](https://dataniel.github.io/cvrr/reference/xbrl_fill.md),
 [`xbrl_lines()`](https://dataniel.github.io/cvrr/reference/xbrl_lines.md),
 [`xbrl_note_tables()`](https://dataniel.github.io/cvrr/reference/xbrl_note_tables.md),
+[`xbrl_panel()`](https://dataniel.github.io/cvrr/reference/xbrl_panel.md),
 [`xbrl_period()`](https://dataniel.github.io/cvrr/reference/xbrl_period.md),
-[`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md)
+[`xbrl_ratios()`](https://dataniel.github.io/cvrr/reference/xbrl_ratios.md),
+[`xbrl_report()`](https://dataniel.github.io/cvrr/reference/xbrl_report.md),
+[`xbrl_report_data()`](https://dataniel.github.io/cvrr/reference/xbrl_report_data.md),
+[`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md),
+[`xbrl_robustness()`](https://dataniel.github.io/cvrr/reference/xbrl_robustness.md),
+[`xbrl_screen()`](https://dataniel.github.io/cvrr/reference/xbrl_screen.md),
+[`xbrl_standardise()`](https://dataniel.github.io/cvrr/reference/xbrl_standardise.md),
+[`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md)
 
 ## Examples
 

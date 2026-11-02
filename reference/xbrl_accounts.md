@@ -30,8 +30,8 @@ xbrl_accounts(
 - what:
 
   Which tables to build. Any of `"company"`, `"audit"`, `"location"`,
-  `"checks"`, `"income_statement"`, `"balance"`, `"movements"` and
-  `"prose"`; all eight by default.
+  `"checks"`, `"income_statement"`, `"balance"`, `"cash_flow"`,
+  `"movements"` and `"prose"`; all nine by default.
 
 - basis:
 
@@ -67,7 +67,7 @@ each distinct string and a pointer per row, so 127,000 balance sheet
 lines cost about a megabyte for never having to fetch a company's name
 in order to read its figures.
 
-## Why eight tables and not one
+## Why nine tables and not one
 
 The company row is 40 columns wide and they answer different questions.
 `development` runs to 486 characters in the median filing, so keeping
@@ -107,6 +107,13 @@ company at all; they are what the checks concluded about one filing.
   in `source`. See
   [`xbrl_lines()`](https://dataniel.github.io/cvrr/reference/xbrl_lines.md).
 
+- `cash_flow`:
+
+  One row per line of the cash flow statement, as reported. Class B may
+  leave the statement out, and a parent company that presents group
+  accounts usually has one only on `basis = "consolidated"`. See
+  [`check_cashflow()`](https://dataniel.github.io/cvrr/reference/check_cashflow.md).
+
 - `movements`:
 
   The fixed asset note, one row per movement per asset class. See
@@ -124,10 +131,11 @@ runs them because that row reports their verdicts, while
 
 ## Whether it adds up
 
-`income_statement` and `balance` carry `reconciled` on every row, so the
-commonest filter – give me only the lines that add up – needs no join.
-`movements` carries four verdicts of its own. And `checks` gathers the
-per-filing conclusions in one place, at the grain the question is asked:
+`income_statement`, `balance` and `cash_flow` carry `reconciled` on
+every row, so the commonest filter – give me only the lines that add up
+– needs no join. `movements` carries four verdicts of its own. And
+`checks` gathers the per-filing conclusions in one place, at the grain
+the question is asked:
 
 - `balance_reconciled` – the balance sheet's debit side equals its
   credit side, from
@@ -137,13 +145,23 @@ per-filing conclusions in one place, at the grain the question is asked:
   left unexplained, from
   [`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md).
 
+- `cashflow_reconciled` – the activities sum to the change in cash, the
+  change rolls the cash forward, and the closing cash is the balance
+  sheet's, from
+  [`check_cashflow()`](https://dataniel.github.io/cvrr/reference/check_cashflow.md).
+
+- `cashflow_debt_backed` – every krone the cash flow statement says was
+  borrowed shows up as long-term debt in the balance sheet. It is
+  `FALSE` for Greenland Airports' 2025 group accounts, whose internal
+  arithmetic is perfect, and that is why it is a column of its own.
+
 - `movements_reconciled` – every block of the fixed asset note that
   could be checked rolls forward.
 
 - `movements_cover` – the notes together account for the fixed assets
   the balance sheet carries.
 
-They are four columns and never one verdict, because a filing can pass
+They are six columns and never one verdict, because a filing can pass
 any of them and fail the rest: a balance sheet that closes says nothing
 about whether the income statement does, and a fixed asset schedule that
 rolls forward perfectly for land and buildings says nothing about the
@@ -164,15 +182,17 @@ for what goes in,
 and
 [`xbrl_movements()`](https://dataniel.github.io/cvrr/reference/xbrl_movements.md)
 for the tables one at a time,
-[`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md)
-and
+[`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md),
 [`check_statement()`](https://dataniel.github.io/cvrr/reference/check_statement.md)
+and
+[`check_cashflow()`](https://dataniel.github.io/cvrr/reference/check_cashflow.md)
 for the detail behind `reconciled`.
 
 Other taxonomy:
 [`add_taxonomy()`](https://dataniel.github.io/cvrr/reference/add_taxonomy.md),
 [`check_breakdown()`](https://dataniel.github.io/cvrr/reference/check_breakdown.md),
 [`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md),
+[`check_cashflow()`](https://dataniel.github.io/cvrr/reference/check_cashflow.md),
 [`check_continuity()`](https://dataniel.github.io/cvrr/reference/check_continuity.md),
 [`check_inclusion()`](https://dataniel.github.io/cvrr/reference/check_inclusion.md),
 [`check_movement()`](https://dataniel.github.io/cvrr/reference/check_movement.md),
@@ -183,8 +203,16 @@ Other taxonomy:
 [`xbrl_lines()`](https://dataniel.github.io/cvrr/reference/xbrl_lines.md),
 [`xbrl_movements()`](https://dataniel.github.io/cvrr/reference/xbrl_movements.md),
 [`xbrl_note_tables()`](https://dataniel.github.io/cvrr/reference/xbrl_note_tables.md),
+[`xbrl_panel()`](https://dataniel.github.io/cvrr/reference/xbrl_panel.md),
 [`xbrl_period()`](https://dataniel.github.io/cvrr/reference/xbrl_period.md),
-[`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md)
+[`xbrl_ratios()`](https://dataniel.github.io/cvrr/reference/xbrl_ratios.md),
+[`xbrl_report()`](https://dataniel.github.io/cvrr/reference/xbrl_report.md),
+[`xbrl_report_data()`](https://dataniel.github.io/cvrr/reference/xbrl_report_data.md),
+[`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md),
+[`xbrl_robustness()`](https://dataniel.github.io/cvrr/reference/xbrl_robustness.md),
+[`xbrl_screen()`](https://dataniel.github.io/cvrr/reference/xbrl_screen.md),
+[`xbrl_standardise()`](https://dataniel.github.io/cvrr/reference/xbrl_standardise.md),
+[`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md)
 
 ## Examples
 

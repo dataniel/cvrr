@@ -1,0 +1,224 @@
+# Reconcile a cash flow statement, and tie it to the balance sheet
+
+A cash flow statement can be wrong in a way its own arithmetic never
+shows. Move an amount from one activity to another and every total still
+adds up: the three activities still sum to the change in cash, and the
+change still carries last year's cash to this year's. So this asks two
+kinds of question. Does the statement agree with itself? And does it
+agree with the balance sheet it was drawn up from?
+
+## Usage
+
+``` r
+check_cashflow(x, by = NULL, tol = 1, rel = 0.05)
+```
+
+## Arguments
+
+- x:
+
+  A tibble from
+  [`read_xbrl()`](https://dataniel.github.io/cvrr/reference/read_xbrl.md),
+  with the taxonomy on it.
+
+- by:
+
+  Columns identifying one statement instance. `NULL`, the default, uses
+  whichever of `file` and `basis` the table has.
+
+- tol:
+
+  Absolute tolerance in the reporting currency. Default `1`.
+
+- rel:
+
+  Relative tolerance for `"debt vs balance"`, as a share of the larger
+  of the two figures. Debt moves for reasons that move no cash, and a
+  krone's tolerance would flag every company with a lease. Default
+  `0.05`.
+
+## Value
+
+A tibble with one row per check and statement instance: the `by`
+columns, the key, `check`, `reported` (the figure the cash flow
+statement gives), `expected` (what the rest of the filing says it should
+be), `residual` (`reported - expected`), `adjustment`, `offset_by` and
+`verdict`. A filing with no cash flow statement has no rows.
+
+## The case it was written for
+
+In its 2025 group accounts, Greenland Airports – Mittarfeqarfiit A/S
+(CVR 12859724) reported "Optagelse af langfristet gaeld" of DKK 1,157
+million under financing. The group's long-term liabilities, read off the
+balance sheet in the same filing, rose by 793 million. The other 364
+million was not debt. It shows up again in investing, as "Indtaegtsfoert
+anlaegstilskud" -364 million, a grant taken to income, tagged in the
+XBRL as `SaleOfOtherCompany`. Taking a grant to income moves no cash at
+all, and a sale does not take cash out. Sermitsiaq reported the
+misclassification in September 2026, and the company said it would
+correct it in the next year's report.
+
+Every internal check passes on that filing. The activities sum to the
+change in cash, the change rolls forward, and the closing cash equals
+the balance sheet's to the krone. The error shows up only when the cash
+flow is held against the balance sheet, and that comparison is what this
+function adds.
+
+## The checks
+
+One row per check per filing, in `check`:
+
+- `"activities"` – operating, investing and financing sum to the change
+  in cash, before the effect of exchange rates where the filing states
+  it.
+
+- `"rollforward"` – the opening cash plus the change is the closing
+  cash. Whether the change already includes the exchange rate adjustment
+  is the filer's reading, so both are tried, and `"agrees, adjusted"`
+  with `adjustment = "exchange rates"` says the adjustment was needed.
+
+- `"cash vs balance"` – the closing cash in the cash flow statement is
+  the cash in the balance sheet. A filing may count securities as cash
+  and an overdraft against it, so `"agrees, adjusted"` means one of
+  those adjustments closes the gap and `adjustment` names it.
+
+- `"untagged: investing"`, `"untagged: financing"` – how much of an
+  activity's total no tagged line accounts for. On its own this is not
+  an error: a filer may leave a line untagged, or tag it with an element
+  the taxonomy places elsewhere. But a reclassification has to leave one
+  somewhere, and this is where it lands.
+
+- `"sign: investing"`, `"sign: financing"` – one row per line whose sign
+  contradicts its element: a sale, a proceeds or a raising of debt that
+  took cash out. `elementid` names the line. Mistagging is common and
+  usually harmless, so this is a lead and not a verdict on the filing.
+
+- `"debt vs balance"` – net borrowing in the cash flow statement against
+  the change in long-term liabilities, including their short-term part,
+  in the balance sheet.
+
+- Six more ties to the rest of the filing, each comparing magnitudes:
+  `"depreciation vs income"` (the add-back against the income
+  statement's charge), `"purchases vs note: tangible"` and
+  `"... intangible"` (cash spent against the fixed asset note's
+  additions), `"capital vs equity"` (a cash capital increase against the
+  change in contributed capital and share premium),
+  `"dividends vs proposed"` (paid this year against proposed at the end
+  of the last) and `"inventories vs balance"`. The verdict is
+  `"agrees"`, `"cash flow larger"` or `"cash flow smaller"`.
+
+The ties differ from the internal checks in one respect. Each has a
+known reason to differ – an asset leased rather than bought, debt
+converted to equity, an extraordinary dividend – so they are judged
+within `rel` rather than to the krone, and the verdict says which way a
+gap runs, because the direction is what tells a reason from a mistake.
+
+For debt, `"owed more than borrowed"` is the common case: the liability
+grew by more than the cash raised, and a lease explains it.
+`"fell more than repaid"` is a reclassification or a conversion.
+`"borrowed more than owed"` is the rare and interesting one: net cash
+raised as debt that the balance sheet does not show as debt, which is
+the pattern of a grant booked as a loan. Before a gap is reported, the
+readings a filer plausibly meant are tried: short-term bank debt counted
+as borrowing, an untagged financing remainder as an untagged repayment,
+and all of financing less what went to and from the owners. `adjustment`
+names the reading that closed it.
+
+Where a gap here is matched, within the same room and in the other
+direction, by an untagged remainder or a contrary line outside
+financing, `offset_by` names it. A reclassification moves an amount from
+one activity to another and leaves the total unchanged, so it shows up
+as two equal and opposite gaps.
+
+## How often it fires
+
+Of 4,304 Danish filings for 2020-2024, 328 tag a cash flow statement.
+The class B companies that make up most of the corpus may leave it out.
+Across those 328:
+
+- the activities sum to the change in cash in 320 of 336 statements, and
+  the roll-forward closes in 313 of 325, 35 of them only with the
+  exchange rate adjustment;
+
+- `"borrowed more than owed"` is reported for 10 of the 196 filings with
+  debt to check. That is a lead and not a finding: a loan drawn and
+  repaid within the year, or debt classified differently in the two
+  statements, can look the same from the outside;
+
+- a gap matched by an equal and opposite line elsewhere is found once,
+  in the harmless direction: debt that grew 1.3 million more than was
+  borrowed, beside an untagged 1.3 million in investing, which looks
+  like an asset bought on credit. `"borrowed more than owed"` with its
+  other half named, the signature of a grant booked as a loan, is found
+  in none. Greenland Airports' 2025 group accounts, read separately,
+  show it to the krone.
+
+Planted in the 61 clean statements that tag their borrowing, a grant
+booked as a loan is flagged in 34 at 5% of the borrowing, 48 at 10% and
+54 at 35%, while the internal checks still pass in 60 of the 61. At 5%
+the planted gap is the size of the room itself, so many fall inside it:
+`rel` is the price of not flagging every lease.
+
+## The signs are the filer's, read through the taxonomy
+
+Filers write an outflow either as a negative figure or as a positive one
+under an outflow element, and both conventions are common. The
+taxonomy's `balance` attribute says which element is which: debit is an
+inflow, credit an outflow. Which convention a filing uses is read from
+its own gross outflows. If most of them are positive, an outflow element
+is subtracted as it stands. Otherwise every figure is taken as reported.
+
+Neither reading uses [`abs()`](https://rdrr.io/r/base/MathFun.html). A
+filer who tags an increase in capital as a negative
+`CashCapitalReduction` meant an inflow, and the arithmetic should treat
+it that way. The sign check is what reports the tag.
+
+## See also
+
+[`check_statement()`](https://dataniel.github.io/cvrr/reference/check_statement.md)
+and
+[`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md)
+for the other two statements,
+[`check_continuity()`](https://dataniel.github.io/cvrr/reference/check_continuity.md)
+for figures stated in two filings.
+
+Other taxonomy:
+[`add_taxonomy()`](https://dataniel.github.io/cvrr/reference/add_taxonomy.md),
+[`check_breakdown()`](https://dataniel.github.io/cvrr/reference/check_breakdown.md),
+[`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md),
+[`check_continuity()`](https://dataniel.github.io/cvrr/reference/check_continuity.md),
+[`check_inclusion()`](https://dataniel.github.io/cvrr/reference/check_inclusion.md),
+[`check_movement()`](https://dataniel.github.io/cvrr/reference/check_movement.md),
+[`check_statement()`](https://dataniel.github.io/cvrr/reference/check_statement.md),
+[`read_taxonomy()`](https://dataniel.github.io/cvrr/reference/read_taxonomy.md),
+[`xbrl_accounts()`](https://dataniel.github.io/cvrr/reference/xbrl_accounts.md),
+[`xbrl_company()`](https://dataniel.github.io/cvrr/reference/xbrl_company.md),
+[`xbrl_fill()`](https://dataniel.github.io/cvrr/reference/xbrl_fill.md),
+[`xbrl_lines()`](https://dataniel.github.io/cvrr/reference/xbrl_lines.md),
+[`xbrl_movements()`](https://dataniel.github.io/cvrr/reference/xbrl_movements.md),
+[`xbrl_note_tables()`](https://dataniel.github.io/cvrr/reference/xbrl_note_tables.md),
+[`xbrl_panel()`](https://dataniel.github.io/cvrr/reference/xbrl_panel.md),
+[`xbrl_period()`](https://dataniel.github.io/cvrr/reference/xbrl_period.md),
+[`xbrl_ratios()`](https://dataniel.github.io/cvrr/reference/xbrl_ratios.md),
+[`xbrl_report()`](https://dataniel.github.io/cvrr/reference/xbrl_report.md),
+[`xbrl_report_data()`](https://dataniel.github.io/cvrr/reference/xbrl_report_data.md),
+[`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md),
+[`xbrl_robustness()`](https://dataniel.github.io/cvrr/reference/xbrl_robustness.md),
+[`xbrl_screen()`](https://dataniel.github.io/cvrr/reference/xbrl_screen.md),
+[`xbrl_standardise()`](https://dataniel.github.io/cvrr/reference/xbrl_standardise.md),
+[`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md)
+
+## Examples
+
+``` r
+if (FALSE) { # \dontrun{
+x <- read_xbrl("materiale/xbrl")
+cf <- check_cashflow(x)
+
+# the internal arithmetic
+table(cf$check, cf$verdict)
+
+# cash raised as debt that the balance sheet does not show as debt
+cf[cf$verdict == "borrowed more than owed", ]
+} # }
+```

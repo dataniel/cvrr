@@ -43,6 +43,7 @@ a$audit             # who audited it, who filed it, with what tool
 a$checks            # whether any of it adds up
 a$income_statement  # lines, in statement order
 a$balance           # lines, with the ones the filer left out derived
+a$cash_flow         # the cash flow statement, as reported
 a$movements         # the fixed asset note, movement by movement
 a$prose             # what management wrote
 ```
@@ -54,9 +55,161 @@ binding the filings together by hand.
 Every table opens with the same key — `cvr`, `name`, `period_start`,
 `period_end` — and ends with `file`, so moving between them needs no
 looking and every figure can be traced back to the document it came
-from. The two statements carry `reconciled` on every row, so filtering
+from. The three statements carry `reconciled` on every row, so filtering
 to the lines that add up needs no join, and `checks` gathers the
 per-filing verdicts in one place.
+
+## Validate once, use many times
+
+Screening, the panel and the reports all need the same work done first:
+the tagging put right, the three statements checked and solved line by
+line.
+[`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md)
+does it once and attaches it to the facts, and every later step reads it
+instead of doing it again:
+
+``` r
+v <- read_xbrl("materiale/xbrl") |>
+  xbrl_validate()
+s <- xbrl_screen(v)
+p <- xbrl_panel(v)
+xbrl_report(v, "12345678.html", cvr = "12345678", peers = p)
+```
+
+The result is still the facts, not a panel. A panel keeps a few dozen
+variables per company and year and drops the rest: the notes and the
+dimensions, the lines beyond its variables, and where each figure came
+from. A subset of whole filings (`v[v$cvr == "12345678", ]`) keeps the
+work. Each filing is fingerprinted, so a figure changed after validation
+is never read from stale work. That filing is simply done again.
+
+## A panel to analyse
+
+[`xbrl_panel()`](https://dataniel.github.io/cvrr/reference/xbrl_panel.md)
+turns the filings into one row per company and year, with the statement
+figures as named variables (`revenue`, `gross_profit`,
+`operating_profit`, `profit`, `assets`, `equity`, `cash`,
+`cf_operating`, …) beside the company’s background and how far its
+figures can be trusted. A company’s time series and a cross-section of
+many companies are the same table:
+
+``` r
+p <- xbrl_panel(x)
+p[p$cvr == "12345678", c("period_end", "gross_profit", "operating_profit", "equity")]
+```
+
+It is built from the statements as
+[`xbrl_lines()`](https://dataniel.github.io/cvrr/reference/xbrl_lines.md)
+gives them, after the tagging has been put right. One sign convention
+holds throughout: costs are positive amounts, a loss is negative, and
+tax is signed by the two results on either side of it. A figure the
+filing does not report is `NA` and never an estimate. Most class B
+filings start at the gross profit, so `revenue` is there for 13% of the
+corpus and `gross_profit` for 97%. In 99.9% of rows the assets equal
+equity, provisions and debt.
+
+## Ratios, and how robust a company is
+
+[`xbrl_ratios()`](https://dataniel.github.io/cvrr/reference/xbrl_ratios.md)
+adds the ratios statistics offices publish, the change from the previous
+year, and each company’s place among comparable companies the same year.
+[`xbrl_robustness()`](https://dataniel.github.io/cvrr/reference/xbrl_robustness.md)
+adds the signs of financial vulnerability: negative equity, capital
+lost, thin equity, two losses, heavy short-term debt, weak interest
+cover, a return well under peers, youth, and a going concern
+uncertainty. It also says how far the gross profit could fall before the
+operating profit is gone, and how many months of wages the cash covers:
+
+``` r
+r <- xbrl_robustness(xbrl_panel(x))
+r[r$n_factors >= 3, c("cvr", "name", "period_end", "n_factors")]
+```
+
+The factors are held against the data. A company that files no annual
+report in the next two years has most often ceased. With weak interest
+cover, capital lost or a weak return that happened 2.6-2.7 times as
+often as without, and with four or more factors 13.5% of the time
+against 4.8% with none. A branch of industry is the better comparison
+group, but it is not in a filing. Join it from a register extract and
+pass `group = "branch"`.
+
+## A report
+
+[`xbrl_report()`](https://dataniel.github.io/cvrr/reference/xbrl_report.md)
+runs the whole chain (standardise, screen, panel, ratios, robustness)
+and writes one self-contained HTML page. The data decides which report
+it is: one company in one year, one company over time, many companies in
+one year, or many over time. `type` overrides that. The page opens with
+what matters most, in sentences, and has the tables behind them
+underneath:
+
+``` r
+xbrl_report(x, "12345678.html", cvr = "12345678", peers = xbrl_panel(x))
+xbrl_report(x, "all.html")
+```
+
+The content is also there as data.
+[`xbrl_report_data()`](https://dataniel.github.io/cvrr/reference/xbrl_report_data.md)
+returns the tables and the sentences, so a report of one’s own can be
+built from the same parts. The page needs nothing outside R, no pandoc
+and no internet. It is in Danish by default, and `lang = "en"` gives
+English.
+
+## Which filings are worth reading?
+
+[`xbrl_screen()`](https://dataniel.github.io/cvrr/reference/xbrl_screen.md)
+runs every check over a pile of filings and returns what they found, one
+row per finding, ranked by how much it would change what a reader takes
+from the accounts:
+
+``` r
+s <- xbrl_screen(x)
+s[s$severity == "high", ]
+```
+
+The checks cover an auditor’s qualified, adverse or missing opinion and
+a going concern uncertainty, a balance sheet that does not balance, an
+income statement step no signs explain, a cash flow statement that does
+not add up or reports borrowing the balance sheet does not owe, and
+balances that reopen on a different amount in the next year’s filing.
+Each finding carries its amount and its share of total assets, so a
+rounding difference at a large company does not outrank a real gap at a
+small one.
+
+The tagging is put right before the accounts are screened.
+[`xbrl_standardise()`](https://dataniel.github.io/cvrr/reference/xbrl_standardise.md)
+finds figures tagged in thousands where the filing is in kroner and puts
+them back. It also reverses a cash flow sign where the activity adds up
+only that way. A sign the activity adds up with is left alone, because
+then it means something. It keeps the figure as tagged beside the
+corrected one. Without that step, 41 of the 54 serious findings over
+4,304 Danish and Greenlandic filings for 2020-2024 were such figures.
+With it, 147 figures and 17 signs are corrected first. Then 618 filings
+have a finding and 93 a serious one. The serious findings are 81
+auditor’s opinions that are qualified, adverse or missing, and 13 cash
+flow statements that do not add up. Each finding carries the filing’s
+background (accounting class, legal form, level of assurance, part of a
+group or not), so like can be compared with like.
+
+A finding is a reason to read the report, not a conclusion about it.
+
+## A cash flow statement that adds up, and is still wrong
+
+Greenland Airports’ 2025 group accounts reported a DKK 400 million state
+grant as new long-term borrowing. Every total in the cash flow statement
+still added up, because moving an amount between activities leaves the
+totals alone.
+[`check_cashflow()`](https://dataniel.github.io/cvrr/reference/check_cashflow.md)
+holds the statement against the balance sheet, the income statement and
+the fixed asset note, and on that filing it finds 364 million of
+borrowing the balance sheet does not owe. It also names the line in
+investing that takes the same amount back out: a grant taken to income,
+tagged in the XBRL as `SaleOfOtherCompany`.
+
+``` r
+cf <- check_cashflow(x)
+cf[cf$verdict == "borrowed more than owed", ]
+```
 
 ## Two forms, one of them useful
 
@@ -95,10 +248,16 @@ Nothing is dropped: every row comes back with a `status` of `unique`,
 every candidate assignment agreed on are filled in even when the group
 as a whole is ambiguous.
 
-The taxonomy publishes these weights too, in its calculation linkbase.
-The two routes are independent, so running both is a genuine cross-check
-rather than a restatement — see
-[`vignette("cvrr")`](https://dataniel.github.io/cvrr/articles/cvrr.md).
+The search is tested against an exhaustive one, every assignment
+enumerated, on random cases from kroner to a group’s hundred billion.
+That test found a precision fault that turned unique answers ambiguous
+on large amounts, and the fault is fixed. There is no official answer to
+check it against. In 13 versions of the Danish taxonomy, 2010-2025, the
+only calculation linkbase is a 2020 income statement for one kind of
+education institution. Erhvervsstyrelsen publishes no weights for the
+ordinary statements. What the taxonomy does publish is each line’s debit
+or credit marking, and on 8,633 solved income statement lines the
+recovered sign agrees with it 99.8% of the time.
 
 ## The taxonomy is where the meaning lives
 
@@ -139,46 +298,56 @@ In the order the route runs.
 
 **Find and fetch**
 
-| Function                                                                      | Description                                               |
-|-------------------------------------------------------------------------------|-----------------------------------------------------------|
-| [`cvr_query()`](https://dataniel.github.io/cvrr/reference/cvr_query.md)       | Build an Elasticsearch query for published annual reports |
-| [`cvr_search()`](https://dataniel.github.io/cvrr/reference/cvr_search.md)     | Send a query to Erhvervsstyrelsens distribution service   |
-| [`cvr_hits()`](https://dataniel.github.io/cvrr/reference/cvr_hits.md)         | Flatten a response into a tibble, one row per document    |
-| [`cvr_download()`](https://dataniel.github.io/cvrr/reference/cvr_download.md) | Download the documents found by a search                  |
+| Function | Description |
+|----|----|
+| [`clean_cvr()`](https://dataniel.github.io/cvrr/reference/clean_cvr.md) | Standardise CVR numbers to 8 digits: strip a DK prefix, spaces and dashes |
+| [`cvr_query()`](https://dataniel.github.io/cvrr/reference/cvr_query.md) | Build an Elasticsearch query for published annual reports |
+| [`cvr_search()`](https://dataniel.github.io/cvrr/reference/cvr_search.md) | Send a query to Erhvervsstyrelsens distribution service |
+| [`cvr_hits()`](https://dataniel.github.io/cvrr/reference/cvr_hits.md) | Flatten a response into a tibble, one row per document |
+| [`cvr_download()`](https://dataniel.github.io/cvrr/reference/cvr_download.md) | Download the documents found by a search |
 
 **Read, and divide up**
 
-| Function                                                                          | Description                                                                                                                                                |
-|-----------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| [`read_xbrl()`](https://dataniel.github.io/cvrr/reference/read_xbrl.md)           | Read one filing, a list of them, or a directory, into one tibble with the taxonomy on it                                                                   |
-| [`xbrl_accounts()`](https://dataniel.github.io/cvrr/reference/xbrl_accounts.md)   | The filings divided into eight keyed tables: the company, where it is, the audit trail, the checks, the two statements, the fixed asset note and the prose |
-| [`xbrl_company()`](https://dataniel.github.io/cvrr/reference/xbrl_company.md)     | The company behind a filing: identity, legal form, class, auditor, employees, activity                                                                     |
-| [`xbrl_lines()`](https://dataniel.github.io/cvrr/reference/xbrl_lines.md)         | One statement, line by line, in statement order                                                                                                            |
-| [`xbrl_movements()`](https://dataniel.github.io/cvrr/reference/xbrl_movements.md) | The fixed asset note as a roll-forward: cost, depreciation and revaluation at each end of the year, and the movements between                              |
+| Function | Description |
+|----|----|
+| [`read_xbrl()`](https://dataniel.github.io/cvrr/reference/read_xbrl.md) | Read one filing, a list of them, or a directory, into one tibble with the taxonomy on it |
+| [`xbrl_accounts()`](https://dataniel.github.io/cvrr/reference/xbrl_accounts.md) | The filings divided into nine keyed tables: the company, where it is, the audit trail, the checks, the three statements, the fixed asset note and the prose |
+| [`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md) | Standardise and check the filings once, and carry the work to every later step |
+| [`xbrl_panel()`](https://dataniel.github.io/cvrr/reference/xbrl_panel.md) | One row per company and year: the statement figures as named variables, background and trust columns |
+| [`xbrl_ratios()`](https://dataniel.github.io/cvrr/reference/xbrl_ratios.md) | Key ratios, the change from last year, and the place among peers |
+| [`xbrl_robustness()`](https://dataniel.github.io/cvrr/reference/xbrl_robustness.md) | Signs of financial vulnerability, held against which companies stopped filing, and what the figures could absorb |
+| [`xbrl_report_data()`](https://dataniel.github.io/cvrr/reference/xbrl_report_data.md) | What a report should say, as tables and sentences, for one company or many, one year or several |
+| [`xbrl_report()`](https://dataniel.github.io/cvrr/reference/xbrl_report.md) | The report as one self-contained HTML page |
+| [`xbrl_company()`](https://dataniel.github.io/cvrr/reference/xbrl_company.md) | The company behind a filing: identity, legal form, class, group, auditor and opinion, going concern, employees, activity |
+| [`xbrl_lines()`](https://dataniel.github.io/cvrr/reference/xbrl_lines.md) | One statement, line by line, in statement order |
+| [`xbrl_movements()`](https://dataniel.github.io/cvrr/reference/xbrl_movements.md) | The fixed asset note as a roll-forward: cost, depreciation and revaluation at each end of the year, and the movements between |
 
 **Name and place the facts**
 
-| Function                                                                              | Description                                                            |
-|---------------------------------------------------------------------------------------|------------------------------------------------------------------------|
-| [`add_taxonomy()`](https://dataniel.github.io/cvrr/reference/add_taxonomy.md)         | Give a filing’s facts their statement, code, label and sign convention |
-| [`read_taxonomy()`](https://dataniel.github.io/cvrr/reference/read_taxonomy.md)       | Open a taxonomy package and read its catalog, labels and defaults      |
-| `cvrr_line`, `cvrr_entry`                                                             | Twelve taxonomies as tables, so no package is needed on disk           |
-| [`xbrl_fill()`](https://dataniel.github.io/cvrr/reference/xbrl_fill.md)               | Derive the subtotals and components a filing left out                  |
-| [`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md)         | Choose between two figures reported for the same line                  |
-| [`xbrl_period()`](https://dataniel.github.io/cvrr/reference/xbrl_period.md)           | Read the accounting period a filing declares for itself                |
-| [`xbrl_note_tables()`](https://dataniel.github.io/cvrr/reference/xbrl_note_tables.md) | Read the tables inside a filing’s text notes                           |
+| Function | Description |
+|----|----|
+| [`add_taxonomy()`](https://dataniel.github.io/cvrr/reference/add_taxonomy.md) | Give a filing’s facts their statement, code, label and sign convention |
+| [`read_taxonomy()`](https://dataniel.github.io/cvrr/reference/read_taxonomy.md) | Open a taxonomy package and read its catalog, labels and defaults |
+| `cvrr_line`, `cvrr_entry` | Twelve taxonomies as tables, so no package is needed on disk |
+| [`xbrl_fill()`](https://dataniel.github.io/cvrr/reference/xbrl_fill.md) | Derive the subtotals and components a filing left out |
+| [`xbrl_resolve()`](https://dataniel.github.io/cvrr/reference/xbrl_resolve.md) | Choose between two figures reported for the same line |
+| [`xbrl_period()`](https://dataniel.github.io/cvrr/reference/xbrl_period.md) | Read the accounting period a filing declares for itself |
+| [`xbrl_note_tables()`](https://dataniel.github.io/cvrr/reference/xbrl_note_tables.md) | Read the tables inside a filing’s text notes |
 
 **Does it add up?**
 
-| Function                                                                              | Description                                                           |
-|---------------------------------------------------------------------------------------|-----------------------------------------------------------------------|
-| [`check_statement()`](https://dataniel.github.io/cvrr/reference/check_statement.md)   | Reconcile every subtotal against the lines below it                   |
-| [`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md)       | Reconcile an income statement step by step to the result for the year |
-| [`check_breakdown()`](https://dataniel.github.io/cvrr/reference/check_breakdown.md)   | Reconcile a dimensional breakdown against the line it breaks down     |
-| [`check_movement()`](https://dataniel.github.io/cvrr/reference/check_movement.md)     | Reconcile an opening balance and its movements to the closing balance |
-| [`check_continuity()`](https://dataniel.github.io/cvrr/reference/check_continuity.md) | Does the balance a company closed on reopen in the next filing?       |
-| [`check_inclusion()`](https://dataniel.github.io/cvrr/reference/check_inclusion.md)   | Find lines a note says are contained in another                       |
-| [`find_signs()`](https://dataniel.github.io/cvrr/reference/find_signs.md)             | Recover the signs that reconcile line items to a total                |
+| Function | Description |
+|----|----|
+| [`xbrl_screen()`](https://dataniel.github.io/cvrr/reference/xbrl_screen.md) | Every check over a pile of filings, findings ranked by how much they matter |
+| [`xbrl_standardise()`](https://dataniel.github.io/cvrr/reference/xbrl_standardise.md) | Put the tagging right before screening: figures in the wrong unit, cash flow signs the wrong way |
+| [`check_statement()`](https://dataniel.github.io/cvrr/reference/check_statement.md) | Reconcile every subtotal against the lines below it |
+| [`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md) | Reconcile an income statement step by step to the result for the year |
+| [`check_cashflow()`](https://dataniel.github.io/cvrr/reference/check_cashflow.md) | Reconcile a cash flow statement, and tie it to the balance sheet, the income statement and the fixed asset note |
+| [`check_breakdown()`](https://dataniel.github.io/cvrr/reference/check_breakdown.md) | Reconcile a dimensional breakdown against the line it breaks down |
+| [`check_movement()`](https://dataniel.github.io/cvrr/reference/check_movement.md) | Reconcile an opening balance and its movements to the closing balance |
+| [`check_continuity()`](https://dataniel.github.io/cvrr/reference/check_continuity.md) | Does the balance a company closed on reopen in the next filing? |
+| [`check_inclusion()`](https://dataniel.github.io/cvrr/reference/check_inclusion.md) | Find lines a note says are contained in another |
+| [`find_signs()`](https://dataniel.github.io/cvrr/reference/find_signs.md) | Recover the signs that reconcile line items to a total |
 
 ## Where the package stops
 

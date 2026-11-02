@@ -55,10 +55,13 @@ adds. Dates are `Date`.
 An XBRL instance holds facts, contexts and units – and no human-readable
 text at all. That is by design: the meaning of every element lives in
 the *taxonomy* the filing points to with a single `link:schemaRef`.
-Labels, the statement hierarchy, the debit/credit balance and the
-calculation weights are all published there, and
+Labels, the statement hierarchy and the debit/credit balance are
+published there, and
 [`add_taxonomy()`](https://dataniel.github.io/cvrr/reference/add_taxonomy.md)
-is what joins them on.
+is what joins them on. XBRL also has a place for calculation weights,
+and the Danish taxonomy leaves it empty for the ordinary statements –
+see
+[`find_signs()`](https://dataniel.github.io/cvrr/reference/find_signs.md).
 
 Because the taxonomy is keyed by qualified name, the element's namespace
 is returned alongside its local name. A Danish filing binds six or more

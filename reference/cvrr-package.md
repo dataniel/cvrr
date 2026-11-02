@@ -32,6 +32,7 @@ Each takes what the previous one returned.
     a$checks            # whether any of it adds up
     a$income_statement  # lines, in statement order
     a$balance           # lines, with the ones the filer left out derived
+    a$cash_flow         # the cash flow statement, as reported
     a$movements         # the fixed asset note, movement by movement
     a$prose             # what management wrote
 
@@ -117,6 +118,24 @@ complete results, testing small first, and the legal frame.
   [`xbrl_movements()`](https://dataniel.github.io/cvrr/reference/xbrl_movements.md)
   for one table at a time
 
+- **Validate once:**
+  [`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md)
+  – the tagging put right and the statements checked, carried along to
+  everything below
+
+- **Analyse:**
+  [`xbrl_panel()`](https://dataniel.github.io/cvrr/reference/xbrl_panel.md)
+  – one row per company and year, the figures as named variables – then
+  [`xbrl_ratios()`](https://dataniel.github.io/cvrr/reference/xbrl_ratios.md)
+  and
+  [`xbrl_robustness()`](https://dataniel.github.io/cvrr/reference/xbrl_robustness.md)
+
+- **Report:**
+  [`xbrl_report()`](https://dataniel.github.io/cvrr/reference/xbrl_report.md)
+  – one HTML page, chosen by the data – and
+  [`xbrl_report_data()`](https://dataniel.github.io/cvrr/reference/xbrl_report_data.md)
+  for its content as tables and sentences
+
 - **Name and place:**
   [`add_taxonomy()`](https://dataniel.github.io/cvrr/reference/add_taxonomy.md),
   [`read_taxonomy()`](https://dataniel.github.io/cvrr/reference/read_taxonomy.md),
@@ -130,10 +149,17 @@ complete results, testing small first, and the legal frame.
   [`xbrl_lines()`](https://dataniel.github.io/cvrr/reference/xbrl_lines.md)
   uses and which can be run on their own
 
+- **Screen:**
+  [`xbrl_screen()`](https://dataniel.github.io/cvrr/reference/xbrl_screen.md)
+  – every check at once, the findings ranked, after
+  [`xbrl_standardise()`](https://dataniel.github.io/cvrr/reference/xbrl_standardise.md)
+  has put the tagging right
+
 - **Reconcile:**
   [`check_statement()`](https://dataniel.github.io/cvrr/reference/check_statement.md),
   [`check_breakdown()`](https://dataniel.github.io/cvrr/reference/check_breakdown.md),
   [`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md),
+  [`check_cashflow()`](https://dataniel.github.io/cvrr/reference/check_cashflow.md),
   [`check_movement()`](https://dataniel.github.io/cvrr/reference/check_movement.md),
   [`check_continuity()`](https://dataniel.github.io/cvrr/reference/check_continuity.md),
   [`check_inclusion()`](https://dataniel.github.io/cvrr/reference/check_inclusion.md),

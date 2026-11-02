@@ -41,7 +41,8 @@ cvr_download(hits, path, sleep = 3, overwrite = FALSE, name_by = "cvrnummer")
   Defaults to the CVR number alone, which means a company's filings for
   different years are told apart only by a `_2`, `_3` suffix in whatever
   order the API returned them. Pass `c("cvrnummer", "slutdato")` to name
-  them by period instead.
+  them by period instead. Characters a file name cannot hold, such as
+  the slash in `application/xml`, become `-`.
 
 ## Value
 
@@ -67,6 +68,7 @@ for the machine-readable filings. A PDF filing has no parser here; it
 goes through `taxmill`.
 
 Other cvr:
+[`clean_cvr()`](https://dataniel.github.io/cvrr/reference/clean_cvr.md),
 [`cvr_hits()`](https://dataniel.github.io/cvrr/reference/cvr_hits.md),
 [`cvr_query()`](https://dataniel.github.io/cvrr/reference/cvr_query.md),
 [`cvr_search()`](https://dataniel.github.io/cvrr/reference/cvr_search.md)
