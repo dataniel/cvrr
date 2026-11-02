@@ -22,6 +22,7 @@ reference:
 
   - title: Find and fetch published reports
     contents:
+      - clean_cvr
       - cvr_query
       - cvr_search
       - cvr_hits

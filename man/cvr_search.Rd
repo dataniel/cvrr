@@ -66,6 +66,7 @@ response <- cvr_query(many_cvrs, "2015-01-01", "2024-12-31") |>
 \code{\link[=cvr_query]{cvr_query()}}, \code{\link[=cvr_hits]{cvr_hits()}}, \code{\link[=cvr_download]{cvr_download()}}
 
 Other cvr:
+\code{\link[=clean_cvr]{clean_cvr()}},
 \code{\link[=cvr_download]{cvr_download()}},
 \code{\link[=cvr_hits]{cvr_hits()}},
 \code{\link[=cvr_query]{cvr_query()}}

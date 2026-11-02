@@ -8,7 +8,8 @@ cvr_query(cvr, enddate_from, enddate_to, size = 2999)
 }
 \arguments{
 \item{cvr}{A character or numeric vector of CVR numbers (8 digits each).
-At most 1000 per query, so split larger sets into batches.}
+At most 1000 per query, so split larger sets into batches. Use
+\code{\link[=clean_cvr]{clean_cvr()}} first for numbers with a \code{DK} prefix, spaces or dashes.}
 
 \item{enddate_from, enddate_to}{Accounting-period end-date range as
 \code{"YYYY-MM-DD"} strings or \code{Date}s. Only reports whose period ends within
@@ -49,6 +50,7 @@ str(query, max.level = 3)
 \code{\link[=cvr_search]{cvr_search()}}, \code{\link[=cvr_hits]{cvr_hits()}}, \code{\link[=cvr_download]{cvr_download()}}
 
 Other cvr:
+\code{\link[=clean_cvr]{clean_cvr()}},
 \code{\link[=cvr_download]{cvr_download()}},
 \code{\link[=cvr_hits]{cvr_hits()}},
 \code{\link[=cvr_search]{cvr_search()}}

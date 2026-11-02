@@ -52,6 +52,15 @@ cvr_query(
 Everything before `cvr_search()` is local; that line is the first real
 API call.
 
+CVR numbers from a spreadsheet or another register often carry a `DK`
+prefix, spaces or dashes, and `cvr_query()` accepts only 8 digits.
+`clean_cvr()` brings them to that form without inventing digits, so a
+seven-digit number stays visibly wrong:
+
+```{r, eval = TRUE}
+clean_cvr(c("DK12345678", "12 34 56 78", "1234567"))
+```
+
 ## Greenlandic companies
 
 Greenland's own business register (GER) was folded into CVR on 3 January

@@ -275,6 +275,7 @@ In the order the route runs.
 
 | Function | Description |
 |----------|-------------|
+| `clean_cvr()` | Standardise CVR numbers to 8 digits: strip a DK prefix, spaces and dashes |
 | `cvr_query()` | Build an Elasticsearch query for published annual reports |
 | `cvr_search()` | Send a query to Erhvervsstyrelsens distribution service |
 | `cvr_hits()` | Flatten a response into a tibble, one row per document |

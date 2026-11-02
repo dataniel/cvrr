@@ -21,7 +21,8 @@
 #' ```
 #'
 #' @param cvr A character or numeric vector of CVR numbers (8 digits each).
-#'   At most 1000 per query, so split larger sets into batches.
+#'   At most 1000 per query, so split larger sets into batches. Use
+#'   [clean_cvr()] first for numbers with a `DK` prefix, spaces or dashes.
 #' @param enddate_from,enddate_to Accounting-period end-date range as
 #'   `"YYYY-MM-DD"` strings or `Date`s. Only reports whose period ends within
 #'   the range (inclusive) are matched.
@@ -44,7 +45,8 @@ cvr_query <- function(cvr, enddate_from, enddate_to, size = 2999) {
   if (length(bad) > 0)
     cli::cli_abort(c(
       "All CVR numbers must be exactly 8 digits.",
-      "x" = "{cli::qty(length(bad))}Invalid value{?s}: {.val {utils::head(bad, 5)}}."
+      "x" = "{cli::qty(length(bad))}Invalid value{?s}: {.val {utils::head(bad, 5)}}.",
+      "i" = "{.fn clean_cvr} removes a DK prefix, spaces and dashes."
     ))
   if (length(cvr) > 1000)
     cli::cli_abort(c(

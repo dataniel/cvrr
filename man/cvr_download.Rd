@@ -60,6 +60,7 @@ for the machine-readable filings. A PDF filing has no parser here; it
 goes through \code{taxmill}.
 
 Other cvr:
+\code{\link[=clean_cvr]{clean_cvr()}},
 \code{\link[=cvr_hits]{cvr_hits()}},
 \code{\link[=cvr_query]{cvr_query()}},
 \code{\link[=cvr_search]{cvr_search()}}
