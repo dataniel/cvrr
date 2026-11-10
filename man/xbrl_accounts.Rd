@@ -13,7 +13,7 @@ xbrl_accounts(
 )
 }
 \arguments{
-\item{x}{A tibble from \code{\link[=read_xbrl]{read_xbrl()}}.}
+\item{x}{A tibble from \code{\link[=read_xbrl]{read_xbrl()}}, or from \code{\link[=xbrl_validate]{xbrl_validate()}}.}
 
 \item{what}{Which tables to build. Any of \code{"company"}, \code{"audit"},
 \code{"location"}, \code{"checks"}, \code{"income_statement"}, \code{"balance"},
@@ -123,6 +123,17 @@ not the same as failing.
 Each is a summary of something you can go and look at: \code{check_cascade()} on
 one filing's facts gives the income statement's steps one row each, and
 \code{movements} gives the note's blocks one row per movement.
+}
+
+\section{As tagged, or put right}{
+
+The tables are cut from the facts as they are given. Straight from
+\code{\link[=read_xbrl]{read_xbrl()}} that is every figure as the filer tagged it. From
+\code{\link[=xbrl_validate]{xbrl_validate()}} it is the standardised figures -- a comparative in the
+wrong unit put back, a cash flow sign reversed where the statement adds up
+only that way -- and the checks validation ran are read rather than run
+again. \code{\link[=xbrl_panel]{xbrl_panel()}} standardises by default, so to set a line here beside
+a figure there, validate first and give both the same facts.
 }
 
 \examples{

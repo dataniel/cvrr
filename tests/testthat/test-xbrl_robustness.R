@@ -91,3 +91,15 @@ test_that("the buffers say what the figures could absorb", {
   expect_equal(r$gross_profit_buffer, 0.3)       # 300 of 1000
   expect_equal(r$cash_months, 6)                 # 300 against 600 a year
 })
+
+# Pasted into the grouping key, a missing class is the text "NA", and six
+# companies with no class stated were each other's peers.
+test_that("a company whose group is not known has no peers", {
+  p <- do.call(rbind, lapply(1:12, function(i)
+    panel(cvr = as.character(i), equity = 100 * i,
+          class = if (i <= 6) "B" else NA_character_)))
+  r <- xbrl_ratios(p)
+  expect_false(anyNA(r$equity_ratio_pct[1:6]))
+  expect_true(all(is.na(r$equity_ratio_pct[7:12])))
+  expect_true(all(is.na(r$equity_ratio_median[7:12])))
+})

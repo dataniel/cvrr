@@ -66,6 +66,17 @@ out the two lines account for the result before tax in 77\% of the corpus.
 Use \code{net_financials} for the total.
 }
 
+\section{A report filed twice}{
+
+\code{cvr} and \code{period_end} identify a row, and a directory can hold two filings
+of the same company and year: a report withdrawn and filed again, which
+\code{\link[=cvr_download]{cvr_download()}} saves with a \verb{_2} suffix. The panel keeps the one approved
+last, by the approval and general meeting dates the filings state, and the
+one read last where those do not settle it. The other is left out with a
+warning that names it. \code{\link[=xbrl_standardise]{xbrl_standardise()}} and \code{\link[=xbrl_screen]{xbrl_screen()}} take the
+same filing as the company's for that year.
+}
+
 \section{How far to trust a row}{
 
 \code{balance_reconciled}, \code{income_reconciled} and \code{cashflow_reconciled} are the

@@ -129,22 +129,50 @@ xbrl_lines <- function(x, statement = "balance",
   # it runs reads as a hang.
   grp <- split(d, d$file)
   pb  <- .file_progress(grp, "  solving lines")
+  # A filing whose duplicates could not be settled, or whose lines could not
+  # be derived, still comes back -- as reported. Which filings and why is
+  # collected here and said once, not once per filing and not never.
+  failed <- new.env(parent = emptyenv())
   out <- lapply(grp, function(g) {
     .file_tick(pb)
     .lines_one(g, taxonomy = taxonomy, fill = fill, want = want,
                currency = unname(cur[g$file[1]]),
-               name = unname(nm[g$file[1]]))
+               name = unname(nm[g$file[1]]), failed = failed)
   })
   .file_done(pb)
+  .warn_lines_failed(failed)
   tibble::as_tibble(data.table::rbindlist(out, fill = TRUE))
+}
+
+.warn_lines_failed <- function(failed) {
+  for (step in ls(failed)) {
+    f <- get(step, envir = failed)
+    files <- unique(names(f))
+    why <- .cli_literal(unique(unname(f)))
+    more <- length(why) - 3L
+    cli::cli_warn(c(
+      "{.fn {step}} failed for {length(files)} filing{?s}; {cli::qty(length(files))}{?its/their} lines are as reported.",
+      stats::setNames(utils::head(why, 3), rep("x", min(3L, length(why)))),
+      if (more > 0) c(" " = "... and {more} more"),
+      "i" = "First: {.file {basename(files[1])}}"))
+  }
+  invisible(NULL)
 }
 
 # One filing. Split first, then solve: the identities and the hierarchy walk
 # are statements of one company's arithmetic, and running them over a bound
 # table would derive a line for one filing out of another's figures.
-.lines_one <- function(d, taxonomy, fill, want, currency, name) {
+.lines_one <- function(d, taxonomy, fill, want, currency, name,
+                       failed = NULL) {
+  note <- function(step, e) {
+    if (is.null(failed)) return(invisible(NULL))
+    had <- if (exists(step, envir = failed, inherits = FALSE))
+      get(step, envir = failed) else character()
+    assign(step, c(had, stats::setNames(conditionMessage(e), d$file[1])),
+           envir = failed)
+  }
   d <- tryCatch(xbrl_resolve(d, by = c("basis", "period")),
-                error = function(e) d)
+                error = function(e) { note("xbrl_resolve", e); d })
   if (!"source" %in% names(d)) d$source <- "reported"
 
   if (fill) {
@@ -166,7 +194,7 @@ xbrl_lines <- function(x, statement = "balance",
     f <- tryCatch(
       xbrl_fill(d, taxonomy = taxonomy, statement = want,
                 by = c("basis", "period")),
-      error = function(e) NULL)
+      error = function(e) { note("xbrl_fill", e); NULL })
     if (!is.null(f) && nrow(f) > 0) {
       keep <- !is.na(f$.source_in)
       f$source[keep] <- f$.source_in[keep]

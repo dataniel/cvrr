@@ -137,8 +137,8 @@ xbrl_standardise <- function(x, what = c("units", "signs"), tol = 1) {
   own <- line & !is.na(x$period_end) & !is.na(x$period) &
     x$period == x$period_end
   own_key <- paste(x$cvr, x$period_end, x$elementid, x$basis)[own]
-  files <- unique(x[c("cvr", "period_end", "file")])
-  files <- files[!duplicated(files[c("cvr", "period_end")]), , drop = FALSE]
+  # A report filed twice: the later one is the company's for that year.
+  files <- .current_files(x)
   file_of <- function(cvr, end)
     files$file[match(paste(cvr, end), paste(files$cvr, files$period_end))]
 

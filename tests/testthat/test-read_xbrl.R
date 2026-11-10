@@ -140,3 +140,16 @@ test_that("read_xbrl() rewrites dimension and member prefixes to the namespace",
   expect_equal(result$explicit_member,
                "fsa:LandAndBuildingsMember;cmn:ConsolidatedMember")
 })
+
+test_that("read_xbrl() names each filing it could not read by the reason", {
+  dir <- withr::local_tempdir()
+  file.copy(xbrl_fixture, file.path(dir, "good.xml"))
+  writeLines("<xbrl><a>", file.path(dir, "broken.xml"))
+  expect_warning(
+    x <- suppressMessages(read_xbrl(dir, taxonomy = FALSE)),
+    "broken.xml: ")
+  failed <- attr(x, "failed")
+  expect_equal(basename(failed), "broken.xml", ignore_attr = TRUE)
+  expect_true(nzchar(names(failed)))
+  expect_equal(basename(unique(x$file)), "good.xml")
+})

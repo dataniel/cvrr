@@ -67,7 +67,9 @@ actually uses, so a filing tagging classes of equity has a
 function to do the binding itself.
 
 A filing that cannot be parsed does not stop the read. Its path is collected
-and all of them are reported once at the end, in \code{attr(x, "failed")}.
+and all of them are reported once at the end, in \code{attr(x, "failed")}: the
+paths, each named by the reason it could not be read, so
+\code{table(names(attr(x, "failed")))} says whether they share one cause.
 }
 
 \section{Amounts are absolute}{

@@ -74,7 +74,8 @@ median of \code{equity_ratio}, \code{operating_return}, \code{current_ratio} and
 \code{return_on_equity} is added, with each company's percentile rank among
 its peers (\verb{*_pct}, 0 to 100). A group with fewer than \code{min_peers}
 companies gets neither: a median of three companies is mostly one
-company's figure.
+company's figure. Nor does a company whose group is \code{NA}: the companies
+with no class stated are not a class.
 }
 
 \examples{

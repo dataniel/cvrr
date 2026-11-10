@@ -33,7 +33,9 @@
 #' function to do the binding itself.
 #'
 #' A filing that cannot be parsed does not stop the read. Its path is collected
-#' and all of them are reported once at the end, in `attr(x, "failed")`.
+#' and all of them are reported once at the end, in `attr(x, "failed")`: the
+#' paths, each named by the reason it could not be read, so
+#' `table(names(attr(x, "failed")))` says whether they share one cause.
 #'
 #' @section Amounts are absolute:
 #' A monetary fact is stated in its `unit` -- kroner, not thousands. The
@@ -115,17 +117,27 @@ read_xbrl <- function(path, taxonomy = TRUE, recurse = TRUE,
 
   if (many) cli::cli_progress_bar("Reading filings", total = length(files))
   out <- vector("list", length(files))
+  why <- rep(NA_character_, length(files))
   for (i in seq_along(files)) {
     if (many) cli::cli_progress_update()
     out[[i]] <- tryCatch(.read_instance(files[i], encoding),
-                         error = function(e) NULL)
+                         error = function(e) {
+                           why[i] <<- conditionMessage(e)
+                           NULL
+                         })
   }
   if (many) cli::cli_progress_done()
 
-  failed <- files[vapply(out, is.null, logical(1))]
-  out <- out[!vapply(out, is.null, logical(1))]
-  if (length(out) == 0)
-    cli::cli_abort("No filing in {.arg path} could be read.")
+  # The path and the reason together: a list of paths says which files to look
+  # at and nothing about whether they share one cause.
+  bad <- vapply(out, is.null, logical(1))
+  failed <- stats::setNames(files[bad], why[bad])
+  out <- out[!bad]
+  if (length(out) == 0) {
+    reason <- unique(names(failed))[1]
+    cli::cli_abort(c("No filing in {.arg path} could be read.",
+                     "x" = "{reason}"))
+  }
 
   # The progress bar covers the parsing and stops there, but two of the slowest
   # steps come after it: binding a directory's worth of tables, and resolving
@@ -139,10 +151,14 @@ read_xbrl <- function(path, taxonomy = TRUE, recurse = TRUE,
   if (!isFALSE(taxonomy))
     x <- add_taxonomy(x, if (isTRUE(taxonomy)) NULL else taxonomy)
 
-  if (length(failed))
+  if (length(failed)) {
+    first <- sprintf("%s: %s", basename(failed), names(failed))
+    first <- .cli_literal(utils::head(first, 3))
     cli::cli_warn(c(
       "{length(failed)} filing{?s} could not be read.",
-      "i" = "Their paths are in {.code attr(x, \"failed\")}."))
+      stats::setNames(first, rep("x", length(first))),
+      "i" = "Their paths are in {.code attr(x, \"failed\")}, each named by the reason."))
+  }
   attr(x, "failed") <- failed
 
   if (many) {

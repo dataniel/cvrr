@@ -28,10 +28,15 @@
 #' @section When the work still applies:
 #' The work is per filing, so a subset of whole filings keeps it: `v[v$cvr ==
 #' "12345678", ]` is still validated, for that company. Each filing's facts are
-#' fingerprinted -- the number of rows and the sum of the values -- and a
-#' filing whose facts no longer match is not trusted: change a value, or drop
-#' some of a filing's rows, and the functions do the work again from the facts
-#' as they stand. Nothing stale is read, and nothing has to be remembered.
+#' fingerprinted -- the number of rows, the sum of the values, and which
+#' element, basis and period each row is -- and a filing whose facts no longer
+#' match is not trusted: change a value, move a figure to another element or
+#' basis, or drop some of a filing's rows, and the functions do the work again
+#' from the facts as they stand. A change to any other column is not seen:
+#' validate again after one.
+#'
+#' `[` and `dplyr::filter()` keep the work. `subset()` drops the attribute, as
+#' it drops every attribute, and the functions then simply do the work again.
 #'
 #' Standardising compares a filing with the company's later filings, and that
 #' comparison was made on everything validated together. A subset keeps its
@@ -75,8 +80,8 @@ xbrl_validate <- function(x) {
     cashflow = check_cashflow(d))
   work$lines <- lapply(stats::setNames(bases, bases), function(b)
     lapply(c(income = "income", balance = "balance", cashflow = "cashflow"),
-           function(s) tryCatch(suppressMessages(xbrl_lines(x, s, basis = b)),
-                                error = function(e) NULL)))
+           function(s) .or_null(suppressMessages(xbrl_lines(x, s, basis = b)),
+                                paste("Reading the", s, "lines"))))
   work$fingerprint <- .fingerprint(x)
 
   attr(x, "validated") <- work
@@ -88,14 +93,41 @@ xbrl_validate <- function(x) {
   x
 }
 
-# Rows and the sum of the values, per filing: cheap to take, and changed by
+# Per filing: the rows, the sum of the values, and a mark of what each row is
+# -- its element, its basis and its period. Cheap to take, and changed by
 # anything that would change what the work found.
+#
+# Rows and values alone were not enough: move a filing's figures to the other
+# basis, or rename an element, and both stay exactly where they were, while
+# every line and every check would come out differently.
 .fingerprint <- function(x) {
   v <- x$value
   v[is.na(v)] <- 0
-  r <- rowsum(cbind(1, v), x$file, reorder = FALSE)
+  m <- .text_mark(x$elementid) + .text_mark(x$basis)
+  if ("period" %in% names(x)) {
+    p <- suppressWarnings(as.numeric(x$period))
+    p[is.na(p)] <- 0
+    m <- m + p
+  }
+  r <- rowsum(cbind(1, v, m), x$file, reorder = FALSE)
   list(n = stats::setNames(r[, 1], rownames(r)),
-       sum = stats::setNames(r[, 2], rownames(r)))
+       sum = stats::setNames(r[, 2], rownames(r)),
+       mark = stats::setNames(r[, 3], rownames(r)))
+}
+
+# A number for each string that depends on the string alone, so a row's mark is
+# the same in a subset as in the whole. Worked out once per distinct value: a
+# corpus has a few thousand element names in millions of rows.
+.text_mark <- function(s) {
+  if (is.null(s)) return(0)
+  s <- as.character(s)
+  u <- unique(s)
+  h <- vapply(u, function(z) {
+    if (is.na(z)) return(0)
+    i <- utf8ToInt(z)
+    sum(i * seq_along(i)) %% 1000003
+  }, numeric(1), USE.NAMES = FALSE)
+  h[match(s, u)]
 }
 
 # The work attached to `x`, cut to the filings `x` holds -- or NULL where
@@ -108,8 +140,12 @@ xbrl_validate <- function(x) {
   f <- names(fp$n)
   if (!all(f %in% names(w$fingerprint$n))) return(NULL)
   s0 <- w$fingerprint$sum[f]
+  # Work fingerprinted before the mark was taken cannot be vouched for.
+  m0 <- w$fingerprint$mark[f]
+  if (is.null(m0)) return(NULL)
   if (any(fp$n != w$fingerprint$n[f]) ||
-      any(abs(fp$sum - s0) > 1e-9 * pmax(1, abs(s0)))) return(NULL)
+      any(abs(fp$sum - s0) > 1e-9 * pmax(1, abs(s0))) ||
+      any(abs(fp$mark - m0) > 1e-9 * pmax(1, abs(m0)))) return(NULL)
 
   cut <- function(t) if (is.null(t) || !nrow(t) || !"file" %in% names(t)) t else
     t[t$file %in% f, , drop = FALSE]

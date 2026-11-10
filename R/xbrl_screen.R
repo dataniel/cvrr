@@ -355,11 +355,11 @@ print.cvrr_screen <- function(x, n = 10, ...) {
   if (!nrow(cc)) return(NULL)
   # A figure stated twice belongs to the later filing: it is the one that
   # reopened on something else.
-  files <- unique(d[c("cvr", "period_end", "period_start", "file", "basis")])
-  files <- files[!duplicated(files[c("cvr", "period_end")]), , drop = FALSE]
+  # A report filed twice: the later one is the company's for that year.
+  files <- .current_files(d)
   i <- match(paste(cc$cvr, cc$opened_in), paste(files$cvr, files$period_end))
   cc$file <- files$file[i]
-  cc$basis <- files$basis[i]
+  cc$basis <- d$basis[match(cc$file, d$file)]
   cc <- cc[!is.na(cc$file), , drop = FALSE]
 
   # Only periods the earlier filing is about: its own year and the one before.

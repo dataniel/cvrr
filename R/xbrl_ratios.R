@@ -49,7 +49,8 @@
 #' `return_on_equity` is added, with each company's percentile rank among
 #' its peers (`*_pct`, 0 to 100). A group with fewer than `min_peers`
 #' companies gets neither: a median of three companies is mostly one
-#' company's figure.
+#' company's figure. Nor does a company whose group is `NA`: the companies
+#' with no class stated are not a class.
 #'
 #' @param p A panel from [xbrl_panel()].
 #' @param group Columns of `p` that make companies comparable. Default
@@ -123,6 +124,11 @@ xbrl_ratios <- function(p, group = "class", min_peers = 5) {
   key <- do.call(paste, c(lapply(group, function(g) as.character(p[[g]])),
                           list(yr), sep = "\r"))
   if ("basis" %in% names(p)) key <- paste(key, p$basis, sep = "\r")
+  # A company whose group is not known has no peers. Pasted into the key, a
+  # missing class is the text "NA", and every company without one was ranked
+  # against the others without one, as if not knowing were a class.
+  ungrouped <- Reduce(`|`, lapply(group, function(g) is.na(p[[g]])),
+                      rep(FALSE, nrow(p))) | is.na(p$period_end)
   size <- stats::ave(rep(1, nrow(p)), key, FUN = length)
   for (v in c("equity_ratio", "operating_return", "current_ratio", "return_on_equity")) {
     x <- p[[v]]
@@ -134,7 +140,7 @@ xbrl_ratios <- function(p, group = "class", min_peers = 5) {
       r[k] <- 100 * (rank(z[k]) - 0.5) / sum(k)
       r
     })
-    thin <- n_ok < min_peers | size < min_peers
+    thin <- n_ok < min_peers | size < min_peers | ungrouped
     med[thin] <- NA
     pct[thin | !ok] <- NA
     p[[paste0(v, "_median")]] <- med

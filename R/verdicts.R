@@ -41,7 +41,7 @@
 
   by <- c("file", "basis", "period")
   if (identical(statement, "balance")) {
-    ch <- tryCatch(check_statement(d, by = by), error = function(e) NULL)
+    ch <- .or_null(check_statement(d, by = by), "The balance sheet check")
     if (is.null(ch) || nrow(ch) == 0)
       return(stats::setNames(logical(), character()))
     ch <- ch[ch$label %in% "debit side vs credit side", , drop = FALSE]
@@ -49,7 +49,7 @@
     return(.by_file(ch$verdict %in% "sides agree", ch$file))
   }
 
-  ch <- tryCatch(check_cascade(d, by = by), error = function(e) NULL)
+  ch <- .or_null(check_cascade(d, by = by), "The income statement check")
   if (is.null(ch) || nrow(ch) == 0)
     return(stats::setNames(logical(), character()))
   .by_file(!ch$status %in% "unexplained", ch$file)
@@ -71,7 +71,7 @@
     return(list(reconciled = none, debt = none))
   ch <- if (!is.null(checks)) checks[checks$basis %in% basis, , drop = FALSE] else {
     d <- x[x$basis %in% basis, , drop = FALSE]
-    tryCatch(check_cashflow(d, by = c("file", "basis")), error = function(e) NULL)
+    .or_null(check_cashflow(d, by = c("file", "basis")), "The cash flow check")
   }
   if (is.null(ch) || nrow(ch) == 0) return(list(reconciled = none, debt = none))
 

@@ -34,6 +34,15 @@
 #' out the two lines account for the result before tax in 77% of the corpus.
 #' Use `net_financials` for the total.
 #'
+#' @section A report filed twice:
+#' `cvr` and `period_end` identify a row, and a directory can hold two filings
+#' of the same company and year: a report withdrawn and filed again, which
+#' [cvr_download()] saves with a `_2` suffix. The panel keeps the one approved
+#' last, by the approval and general meeting dates the filings state, and the
+#' one read last where those do not settle it. The other is left out with a
+#' warning that names it. [xbrl_standardise()] and [xbrl_screen()] take the
+#' same filing as the company's for that year.
+#'
 #' @section How far to trust a row:
 #' `balance_reconciled`, `income_reconciled` and `cashflow_reconciled` are the
 #' verdicts of [check_statement()], [check_cascade()] and [check_cashflow()];
@@ -83,6 +92,16 @@ xbrl_panel <- function(x, basis = "parent", standardise = TRUE, .checks = NULL) 
                      "i" = "It comes from {.fn read_xbrl}."))
   if (isTRUE(standardise) && !"standardised" %in% names(x))
     x <- suppressMessages(xbrl_standardise(x))
+
+  # One row per company and year is the panel's promise, so a report filed
+  # twice is in it once. Whole filings go, so validated work still applies.
+  old <- .superseded_files(x)
+  if (length(old)) {
+    x <- x[!x$file %in% old, , drop = FALSE]
+    cli::cli_warn(c(
+      "{length(old)} filing{?s} left out: a later filing covers the same company and year.",
+      "i" = "The one approved last is kept. Left out: {.file {utils::head(basename(old), 3)}}{if (length(old) > 3) ', ...' else ''}"))
+  }
   n <- length(unique(x$file))
   cli::cli_alert_info("Building a panel of {n} filing{?s}.")
 
@@ -101,12 +120,14 @@ xbrl_panel <- function(x, basis = "parent", standardise = TRUE, .checks = NULL) 
   for (col in c("name", "class", "form", "micro", "founded", "assurance",
                 "opinion_kind", "going_concern", "in_group", "group_accounts",
                 "employees", "currency"))
-    out[[col]] <- if (col %in% names(comp)) comp[[col]][j] else NA
+    out[[col]] <- if (col %in% names(comp)) comp[[col]][j] else rep(NA, nrow(out))
 
   # How far to trust it.
-  out$balance_reconciled <- NA
-  out$income_reconciled <- NA
-  out$cashflow_reconciled <- NA
+  # rep(), not a bare NA: assigning one value to a table with no rows is an
+  # error, and a panel of filings without statement lines has none.
+  out$balance_reconciled <- rep(NA, nrow(out))
+  out$income_reconciled <- rep(NA, nrow(out))
+  out$cashflow_reconciled <- rep(NA, nrow(out))
   for (b in basis) {
     k <- out$basis == b
     ok_b <- .reconciles(x, "balance", b, .checks$statement)
@@ -181,8 +202,8 @@ xbrl_panel <- function(x, basis = "parent", standardise = TRUE, .checks = NULL) 
   st <- c(income = "income", balance = "balance", cashflow = "cashflow")
   if (is.null(lines))
     lines <- lapply(st, function(s)
-      tryCatch(suppressMessages(xbrl_lines(x, s, basis = basis)),
-               error = function(e) NULL))
+      .or_null(suppressMessages(xbrl_lines(x, s, basis = basis)),
+               paste("Reading the", s, "lines")))
   files <- unique(unlist(lapply(lines, function(l) l$file)))
   if (!length(files)) return(NULL)
 

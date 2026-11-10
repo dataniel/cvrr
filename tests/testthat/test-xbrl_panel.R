@@ -81,3 +81,46 @@ test_that("the trust columns are there", {
   expect_true(p$balance_reconciled)
   expect_equal(p$corrections, 0L)
 })
+
+# Facts with no statement line in them: a directory of filings read with a
+# taxonomy that places none of their elements. The panel is then empty, and
+# used to be an error -- one NA assigned to a table with no rows.
+test_that("filings without statement lines give an empty panel, not an error", {
+  x <- filing()
+  p <- suppressMessages(xbrl_panel(x[is.na(x$statement), ]))
+  expect_s3_class(p, "cvrr_panel")
+  expect_equal(nrow(p), 0L)
+  expect_true(all(c("equity", "balance_reconciled", "corrections") %in% names(p)))
+})
+
+# A report withdrawn and filed again: two files, one company, one year.
+test_that("a report filed twice is in the panel once, as the later filing", {
+  first <- filing()
+  again <- filing()
+  again$file <- "a_2.xml"
+  again$value[again$elementid == "Equity"] <- 300
+  again$value[again$elementid == "Provisions"] <- 200
+  approved <- function(x, day) {
+    r <- info("DateOfApprovalOfAnnualReport", day)
+    r[setdiff(names(x), names(r))] <- x[1, setdiff(names(x), names(r))]
+    rbind(x, r[names(x)])
+  }
+  # the later approval wins whichever file is read first
+  for (x in list(rbind(approved(first, "2024-03-01"), approved(again, "2024-06-01")),
+                 rbind(approved(again, "2024-06-01"), approved(first, "2024-03-01")))) {
+    expect_warning(p <- suppressMessages(xbrl_panel(x)), "same company and year")
+    expect_equal(nrow(p), 1L)
+    expect_equal(p$file, "a_2.xml")
+    expect_equal(p$equity, 300)
+  }
+  # with no date to go by, the one read last
+  expect_warning(p <- suppressMessages(xbrl_panel(rbind(first, again))), "a.xml")
+  expect_equal(p$file, "a_2.xml")
+})
+
+test_that("a check that fails says so instead of reading as nothing to check", {
+  local_mocked_bindings(check_statement = function(...) stop("broken {inside}"))
+  expect_warning(p <- suppressMessages(xbrl_panel(filing())),
+                 "balance sheet check failed")
+  expect_true(is.na(p$balance_reconciled))
+})

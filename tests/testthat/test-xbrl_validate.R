@@ -99,3 +99,37 @@ test_that("a changed figure is not read from stale work", {
   v <- suppressMessages(xbrl_validate(two()))
   expect_null(cvrr:::.validated(v[!(v$file == "a.xml" & v$elementid == "Equity"), ]))
 })
+
+# Rows and the sum of the values do not move when a figure changes place.
+test_that("a figure moved to another basis or element is not read from stale work", {
+  v <- suppressMessages(xbrl_validate(two()))
+  b <- v
+  b$basis[b$file == "a.xml"] <- "consolidated"
+  expect_null(cvrr:::.validated(b))
+
+  e <- v
+  e$elementid[e$file == "a.xml" & e$elementid == "Equity"] <- "Provisions"
+  expect_null(cvrr:::.validated(e))
+
+  # and the other filing's work is still good on its own
+  expect_false(is.null(cvrr:::.validated(b[b$file == "b.xml", ])))
+})
+
+test_that("dplyr::filter() keeps the work as `[` does", {
+  skip_if_not_installed("dplyr")
+  v <- suppressMessages(xbrl_validate(two()))
+  expect_false(is.null(cvrr:::.validated(dplyr::filter(v, cvr == "11111111"))))
+})
+
+test_that("xbrl_accounts() reads the checks validation ran", {
+  x <- two()
+  v <- suppressMessages(xbrl_validate(x))
+  want <- suppressMessages(xbrl_accounts(v, what = "checks"))
+  local_mocked_bindings(
+    check_cascade = function(...) stop("ran again"),
+    check_statement = function(...) stop("ran again"),
+    check_cashflow = function(...) stop("ran again"))
+  got <- expect_no_warning(suppressMessages(xbrl_accounts(v, what = "checks")))
+  expect_equal(got$checks, want$checks)
+  expect_true(all(got$checks$balance_reconciled))
+})

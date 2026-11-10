@@ -85,7 +85,16 @@
 #' one filing's facts gives the income statement's steps one row each, and
 #' `movements` gives the note's blocks one row per movement.
 #'
-#' @param x A tibble from [read_xbrl()].
+#' @section As tagged, or put right:
+#' The tables are cut from the facts as they are given. Straight from
+#' [read_xbrl()] that is every figure as the filer tagged it. From
+#' [xbrl_validate()] it is the standardised figures -- a comparative in the
+#' wrong unit put back, a cash flow sign reversed where the statement adds up
+#' only that way -- and the checks validation ran are read rather than run
+#' again. [xbrl_panel()] standardises by default, so to set a line here beside
+#' a figure there, validate first and give both the same facts.
+#'
+#' @param x A tibble from [read_xbrl()], or from [xbrl_validate()].
 #' @param what Which tables to build. Any of `"company"`, `"audit"`,
 #'   `"location"`, `"checks"`, `"income_statement"`, `"balance"`,
 #'   `"cash_flow"`, `"movements"` and `"prose"`; all nine by default.
@@ -164,13 +173,20 @@ xbrl_accounts <- function(x, what = NULL,
 
   # The checks are the expensive part, so they run only for a table that asks
   # for them. `company` asks for all of them, because it reports every verdict.
+  #
+  # Facts from xbrl_validate() carry the checks already run, and they are read
+  # rather than run again -- as xbrl_lines() below reads the lines. That also
+  # keeps the two together: the verdict on a statement is then the verdict on
+  # the lines shown, both from the standardised figures.
+  w <- .validated(x)
   none <- stats::setNames(logical(), character())
   ok_income <- if (any(c("checks", "income_statement") %in% what))
-    .reconciles(x, "income", basis) else none
+    .reconciles(x, "income", basis, w$cascade) else none
   ok_balance <- if (any(c("checks", "balance") %in% what))
-    .reconciles(x, "balance", basis) else none
+    .reconciles(x, "balance", basis, w$statement) else none
   ok_cash <- if (any(c("checks", "cash_flow") %in% what))
-    .cashflow_verdicts(x, basis) else list(reconciled = none, debt = none)
+    .cashflow_verdicts(x, basis, w$cashflow) else
+      list(reconciled = none, debt = none)
 
   # The tables first and the company row last: it reports the others' verdicts,
   # and `out[what]` puts them back in the order asked for.
