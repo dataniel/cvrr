@@ -88,7 +88,8 @@ year, the median of `equity_ratio`, `operating_return`, `current_ratio`
 and `return_on_equity` is added, with each company's percentile rank
 among its peers (`*_pct`, 0 to 100). A group with fewer than `min_peers`
 companies gets neither: a median of three companies is mostly one
-company's figure.
+company's figure. Nor does a company whose group is `NA`: the companies
+with no class stated are not a class.
 
 ## See also
 

@@ -25,7 +25,9 @@ xbrl_accounts(
 - x:
 
   A tibble from
-  [`read_xbrl()`](https://dataniel.github.io/cvrr/reference/read_xbrl.md).
+  [`read_xbrl()`](https://dataniel.github.io/cvrr/reference/read_xbrl.md),
+  or from
+  [`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md).
 
 - what:
 
@@ -172,6 +174,19 @@ Each is a summary of something you can go and look at:
 [`check_cascade()`](https://dataniel.github.io/cvrr/reference/check_cascade.md)
 on one filing's facts gives the income statement's steps one row each,
 and `movements` gives the note's blocks one row per movement.
+
+## As tagged, or put right
+
+The tables are cut from the facts as they are given. Straight from
+[`read_xbrl()`](https://dataniel.github.io/cvrr/reference/read_xbrl.md)
+that is every figure as the filer tagged it. From
+[`xbrl_validate()`](https://dataniel.github.io/cvrr/reference/xbrl_validate.md)
+it is the standardised figures – a comparative in the wrong unit put
+back, a cash flow sign reversed where the statement adds up only that
+way – and the checks validation ran are read rather than run again.
+[`xbrl_panel()`](https://dataniel.github.io/cvrr/reference/xbrl_panel.md)
+standardises by default, so to set a line here beside a figure there,
+validate first and give both the same facts.
 
 ## See also
 

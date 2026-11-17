@@ -116,7 +116,9 @@ actually uses, so a filing tagging classes of equity has a
 <code>do.call(rbind, ...)</code> fails on that, which is reason enough for this
 function to do the binding itself.</p>
 <p>A filing that cannot be parsed does not stop the read. Its path is collected
-and all of them are reported once at the end, in <code>attr(x, "failed")</code>.</p>
+and all of them are reported once at the end, in <code>attr(x, "failed")</code>: the
+paths, each named by the reason it could not be read, so
+<code>table(names(attr(x, "failed")))</code> says whether they share one cause.</p>
     </div>
     <div class="section level2">
     <h2 id="amounts-are-absolute">Amounts are absolute<a class="anchor" aria-label="anchor" href="#amounts-are-absolute"></a></h2>

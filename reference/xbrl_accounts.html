@@ -63,7 +63,7 @@ key, so that moving between them needs no looking.</p>
 
 
 <dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
-<dd><p>A tibble from <code><a href="read_xbrl.html">read_xbrl()</a></code>.</p></dd>
+<dd><p>A tibble from <code><a href="read_xbrl.html">read_xbrl()</a></code>, or from <code><a href="xbrl_validate.html">xbrl_validate()</a></code>.</p></dd>
 
 
 <dt id="arg-what">what<a class="anchor" aria-label="anchor" href="#arg-what"></a></dt>
@@ -190,6 +190,18 @@ not the same as failing.</p>
 <p>Each is a summary of something you can go and look at: <code><a href="check_cascade.html">check_cascade()</a></code> on
 one filing's facts gives the income statement's steps one row each, and
 <code>movements</code> gives the note's blocks one row per movement.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="as-tagged-or-put-right">As tagged, or put right<a class="anchor" aria-label="anchor" href="#as-tagged-or-put-right"></a></h2>
+
+
+<p>The tables are cut from the facts as they are given. Straight from
+<code><a href="read_xbrl.html">read_xbrl()</a></code> that is every figure as the filer tagged it. From
+<code><a href="xbrl_validate.html">xbrl_validate()</a></code> it is the standardised figures – a comparative in the
+wrong unit put back, a cash flow sign reversed where the statement adds up
+only that way – and the checks validation ran are read rather than run
+again. <code><a href="xbrl_panel.html">xbrl_panel()</a></code> standardises by default, so to set a line here beside
+a figure there, validate first and give both the same facts.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

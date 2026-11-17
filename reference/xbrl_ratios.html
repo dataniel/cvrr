@@ -121,7 +121,8 @@ median of <code>equity_ratio</code>, <code>operating_return</code>, <code>curren
 <code>return_on_equity</code> is added, with each company's percentile rank among
 its peers (<code>*_pct</code>, 0 to 100). A group with fewer than <code>min_peers</code>
 companies gets neither: a median of three companies is mostly one
-company's figure.</p>
+company's figure. Nor does a company whose group is <code>NA</code>: the companies
+with no class stated are not a class.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>

@@ -120,6 +120,18 @@ out the two lines account for the result before tax in 77% of the corpus.
 Use <code>net_financials</code> for the total.</p>
     </div>
     <div class="section level2">
+    <h2 id="a-report-filed-twice">A report filed twice<a class="anchor" aria-label="anchor" href="#a-report-filed-twice"></a></h2>
+
+
+<p><code>cvr</code> and <code>period_end</code> identify a row, and a directory can hold two filings
+of the same company and year: a report withdrawn and filed again, which
+<code><a href="cvr_download.html">cvr_download()</a></code> saves with a <code>_2</code> suffix. The panel keeps the one approved
+last, by the approval and general meeting dates the filings state, and the
+one read last where those do not settle it. The other is left out with a
+warning that names it. <code><a href="xbrl_standardise.html">xbrl_standardise()</a></code> and <code><a href="xbrl_screen.html">xbrl_screen()</a></code> take the
+same filing as the company's for that year.</p>
+    </div>
+    <div class="section level2">
     <h2 id="how-far-to-trust-a-row">How far to trust a row<a class="anchor" aria-label="anchor" href="#how-far-to-trust-a-row"></a></h2>
 
 

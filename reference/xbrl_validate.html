@@ -96,10 +96,14 @@ as <code><a href="read_xbrl.html">read_xbrl()</a></code> gave them, and the pane
 
 
 <p>The work is per filing, so a subset of whole filings keeps it: <code>v[v$cvr == "12345678", ]</code> is still validated, for that company. Each filing's facts are
-fingerprinted – the number of rows and the sum of the values – and a
-filing whose facts no longer match is not trusted: change a value, or drop
-some of a filing's rows, and the functions do the work again from the facts
-as they stand. Nothing stale is read, and nothing has to be remembered.</p>
+fingerprinted – the number of rows, the sum of the values, and which
+element, basis and period each row is – and a filing whose facts no longer
+match is not trusted: change a value, move a figure to another element or
+basis, or drop some of a filing's rows, and the functions do the work again
+from the facts as they stand. A change to any other column is not seen:
+validate again after one.</p>
+<p><code>[</code> and <code>dplyr::filter()</code> keep the work. <code><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset()</a></code> drops the attribute, as
+it drops every attribute, and the functions then simply do the work again.</p>
 <p>Standardising compares a filing with the company's later filings, and that
 comparison was made on everything validated together. A subset keeps its
 corrections, which were made with more information than the subset has.</p>

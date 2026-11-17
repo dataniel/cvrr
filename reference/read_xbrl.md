@@ -85,7 +85,9 @@ function to do the binding itself.
 
 A filing that cannot be parsed does not stop the read. Its path is
 collected and all of them are reported once at the end, in
-`attr(x, "failed")`.
+`attr(x, "failed")`: the paths, each named by the reason it could not be
+read, so `table(names(attr(x, "failed")))` says whether they share one
+cause.
 
 ## Amounts are absolute
 

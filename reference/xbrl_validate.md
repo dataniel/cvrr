@@ -62,11 +62,17 @@ It is an ordinary tibble, and everything that takes facts takes it.
 
 The work is per filing, so a subset of whole filings keeps it:
 `v[v$cvr == "12345678", ]` is still validated, for that company. Each
-filing's facts are fingerprinted – the number of rows and the sum of the
-values – and a filing whose facts no longer match is not trusted: change
-a value, or drop some of a filing's rows, and the functions do the work
-again from the facts as they stand. Nothing stale is read, and nothing
-has to be remembered.
+filing's facts are fingerprinted – the number of rows, the sum of the
+values, and which element, basis and period each row is – and a filing
+whose facts no longer match is not trusted: change a value, move a
+figure to another element or basis, or drop some of a filing's rows, and
+the functions do the work again from the facts as they stand. A change
+to any other column is not seen: validate again after one.
+
+`[` and `dplyr::filter()` keep the work.
+[`subset()`](https://rdrr.io/r/base/subset.html) drops the attribute, as
+it drops every attribute, and the functions then simply do the work
+again.
 
 Standardising compares a filing with the company's later filings, and
 that comparison was made on everything validated together. A subset

@@ -82,6 +82,21 @@ and impairment of financial assets are financial items too, and with
 them left out the two lines account for the result before tax in 77% of
 the corpus. Use `net_financials` for the total.
 
+## A report filed twice
+
+`cvr` and `period_end` identify a row, and a directory can hold two
+filings of the same company and year: a report withdrawn and filed
+again, which
+[`cvr_download()`](https://dataniel.github.io/cvrr/reference/cvr_download.md)
+saves with a `_2` suffix. The panel keeps the one approved last, by the
+approval and general meeting dates the filings state, and the one read
+last where those do not settle it. The other is left out with a warning
+that names it.
+[`xbrl_standardise()`](https://dataniel.github.io/cvrr/reference/xbrl_standardise.md)
+and
+[`xbrl_screen()`](https://dataniel.github.io/cvrr/reference/xbrl_screen.md)
+take the same filing as the company's for that year.
+
 ## How far to trust a row
 
 `balance_reconciled`, `income_reconciled` and `cashflow_reconciled` are
